@@ -1,0 +1,1068 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Luckieverse Admin - 리워드 게임 관리</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f6fa; color: #2d3436; }
+
+    /* Layout */
+    .sidebar { position: fixed; top: 0; left: 0; width: 240px; height: 100vh; background: #2d3436; color: #fff; padding: 24px 0; }
+    .sidebar-logo { padding: 0 24px 24px; font-size: 18px; font-weight: 700; border-bottom: 1px solid #444; margin-bottom: 16px; }
+    .sidebar-logo span { color: #6c5ce7; }
+    .sidebar-menu { list-style: none; }
+    .sidebar-menu li { padding: 12px 24px; cursor: pointer; font-size: 14px; color: #b2bec3; transition: all 0.2s; }
+    .sidebar-menu li:hover, .sidebar-menu li.active { background: #3d3d3d; color: #fff; }
+    .sidebar-menu li.active { border-left: 3px solid #6c5ce7; }
+
+    .main { margin-left: 240px; padding: 32px; }
+    .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+    .page-header h1 { font-size: 24px; font-weight: 700; }
+
+    /* Buttons */
+    .btn { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.2s; }
+    .btn-primary { background: #6c5ce7; color: #fff; }
+    .btn-primary:hover { background: #5a4bd1; }
+    .btn-secondary { background: #dfe6e9; color: #2d3436; }
+    .btn-secondary:hover { background: #b2bec3; }
+    .btn-danger { background: #ff7675; color: #fff; }
+    .btn-danger:hover { background: #d63031; }
+    .btn-sm { padding: 6px 14px; font-size: 12px; }
+
+    /* Table */
+    .table-wrap { background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; }
+    thead { background: #f8f9fa; }
+    th { padding: 14px 16px; text-align: left; font-size: 12px; color: #636e72; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+    td { padding: 14px 16px; font-size: 14px; border-top: 1px solid #f1f2f6; }
+    tr:hover { background: #fafafa; }
+
+    /* Toggle */
+    .toggle { position: relative; width: 44px; height: 24px; cursor: pointer; }
+    .toggle input { display: none; }
+    .toggle-slider { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: #dfe6e9; border-radius: 12px; transition: 0.3s; }
+    .toggle-slider:before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: 0.3s; }
+    .toggle input:checked + .toggle-slider { background: #00b894; }
+    .toggle input:checked + .toggle-slider:before { transform: translateX(20px); }
+
+    /* Badge */
+    .badge { display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+    .badge-on { background: #d4edda; color: #155724; }
+    .badge-off { background: #f8d7da; color: #721c24; }
+
+    /* Modal */
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: flex-start; padding-top: 40px; }
+    .modal-overlay.show { display: flex; }
+    .modal { background: #fff; border-radius: 16px; width: 720px; max-height: 85vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.15); }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 24px 32px; border-bottom: 1px solid #f1f2f6; }
+    .modal-header h2 { font-size: 20px; font-weight: 700; }
+    .modal-close { background: none; border: none; font-size: 24px; cursor: pointer; color: #636e72; }
+    .modal-body { padding: 32px; }
+    .modal-footer { padding: 16px 32px; border-top: 1px solid #f1f2f6; display: flex; justify-content: flex-end; gap: 12px; }
+
+    /* Form */
+    .form-section { margin-bottom: 32px; }
+    .form-section-title { font-size: 16px; font-weight: 700; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid #6c5ce7; color: #2d3436; }
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 13px; font-weight: 600; color: #636e72; margin-bottom: 6px; }
+    .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px 14px; border: 1px solid #dfe6e9; border-radius: 8px; font-size: 14px; transition: border-color 0.2s; }
+    .form-group input:focus, .form-group select:focus { outline: none; border-color: #6c5ce7; }
+    .form-row { display: flex; gap: 16px; }
+    .form-row .form-group { flex: 1; }
+    .form-hint { font-size: 11px; color: #b2bec3; margin-top: 4px; }
+
+    /* Flow Preview */
+    .flow-preview { background: #f8f9fa; border-radius: 12px; padding: 20px; margin-top: 8px; }
+    .flow-step { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+    .flow-step:last-child { margin-bottom: 0; }
+    .flow-step-badge { padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; min-width: 70px; text-align: center; }
+    .flow-step-badge.play { background: #dfe6e9; color: #2d3436; }
+    .flow-step-badge.ad { background: #ffeaa7; color: #6d4c00; }
+    .flow-step-badge.reward { background: #d4edda; color: #155724; }
+    .flow-step-text { font-size: 13px; color: #636e72; }
+    .flow-arrow { color: #b2bec3; font-size: 16px; margin-left: 36px; }
+
+    /* Stats cards */
+    .stats-row { display: flex; gap: 16px; margin-bottom: 24px; }
+    .stat-card { flex: 1; background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    .stat-card .stat-label { font-size: 12px; color: #636e72; margin-bottom: 4px; }
+    .stat-card .stat-value { font-size: 28px; font-weight: 700; }
+    .stat-card .stat-sub { font-size: 12px; color: #b2bec3; margin-top: 4px; }
+
+    /* Upgrade toggle area */
+    .upgrade-section { background: #f8f9fa; border-radius: 8px; padding: 16px; margin-top: 8px; }
+    .upgrade-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .upgrade-header span { font-size: 14px; font-weight: 600; }
+    .upgrade-fields { display: none; }
+    .upgrade-fields.show { display: block; }
+
+    /* Empty state */
+    .empty-state { text-align: center; padding: 60px 20px; color: #b2bec3; }
+    .empty-state-icon { font-size: 48px; margin-bottom: 16px; }
+    .empty-state-text { font-size: 16px; margin-bottom: 8px; }
+    .empty-state-sub { font-size: 13px; }
+
+    /* Thumbnail preview */
+    .thumb-placeholder { width: 120px; height: 120px; background: #f1f2f6; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #b2bec3; font-size: 12px; border: 2px dashed #dfe6e9; cursor: pointer; }
+
+    /* Probability tiers */
+    .prob-tiers { margin-top: 8px; }
+    .prob-tier-row { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; }
+    .prob-tier-row input { width: 80px; padding: 8px 10px; border: 1px solid #dfe6e9; border-radius: 6px; font-size: 13px; text-align: center; }
+    .prob-tier-row input:focus { outline: none; border-color: #6c5ce7; }
+    .prob-tier-row span { font-size: 13px; color: #636e72; min-width: 16px; }
+    .prob-tier-remove { background: none; border: none; color: #ff7675; cursor: pointer; font-size: 16px; font-weight: 700; padding: 0 4px; }
+    .prob-tier-remove:hover { color: #d63031; }
+    .prob-add { background: none; border: 1px dashed #dfe6e9; border-radius: 6px; padding: 6px 12px; cursor: pointer; color: #636e72; font-size: 12px; margin-top: 4px; transition: all 0.2s; }
+    .prob-add:hover { border-color: #6c5ce7; color: #6c5ce7; }
+    .prob-total { font-size: 12px; margin-top: 6px; font-weight: 600; }
+    .prob-total.valid { color: #00b894; }
+    .prob-total.invalid { color: #ff7675; }
+    .prob-header { display: flex; gap: 8px; margin-bottom: 6px; }
+    .prob-header span { font-size: 11px; color: #b2bec3; font-weight: 600; }
+
+    /* In-game ads */
+    .ingame-ads-list { margin-top: 8px; }
+    .ingame-ad-item { background: #fff; border: 1px solid #dfe6e9; border-radius: 10px; padding: 16px; margin-bottom: 12px; position: relative; }
+    .ingame-ad-item:last-child { margin-bottom: 0; }
+    .ingame-ad-remove { position: absolute; top: 12px; right: 12px; background: none; border: none; color: #ff7675; cursor: pointer; font-size: 18px; font-weight: 700; }
+    .ingame-ad-remove:hover { color: #d63031; }
+    .ingame-ad-row { display: flex; gap: 12px; margin-bottom: 10px; }
+    .ingame-ad-row:last-child { margin-bottom: 0; }
+    .ingame-ad-field { flex: 1; }
+    .ingame-ad-field label { display: block; font-size: 11px; font-weight: 600; color: #b2bec3; margin-bottom: 4px; }
+    .ingame-ad-field input, .ingame-ad-field select { width: 100%; padding: 8px 10px; border: 1px solid #dfe6e9; border-radius: 6px; font-size: 13px; }
+    .ingame-ad-field input:focus, .ingame-ad-field select:focus { outline: none; border-color: #6c5ce7; }
+    .btn-add-ingame { background: none; border: 2px dashed #dfe6e9; border-radius: 10px; padding: 12px; width: 100%; cursor: pointer; color: #636e72; font-size: 13px; font-weight: 600; transition: all 0.2s; margin-top: 12px; }
+    .btn-add-ingame:hover { border-color: #6c5ce7; color: #6c5ce7; }
+    .ingame-empty { text-align: center; padding: 20px; color: #b2bec3; font-size: 13px; }
+
+    /* Detail in-game ads */
+    .detail-ingame-item { background: #f8f9fa; border-radius: 8px; padding: 12px 16px; margin-bottom: 8px; }
+    .detail-ingame-item:last-child { margin-bottom: 0; }
+    .detail-ingame-name { font-weight: 700; font-size: 14px; margin-bottom: 6px; }
+    .detail-ingame-props { display: flex; gap: 16px; flex-wrap: wrap; }
+    .detail-ingame-prop { font-size: 12px; color: #636e72; }
+    .detail-ingame-prop span { font-weight: 600; color: #2d3436; }
+
+    /* Detail view */
+    .detail-header { display: flex; align-items: center; gap: 16px; margin-bottom: 32px; }
+    .detail-back { background: none; border: none; font-size: 20px; cursor: pointer; color: #636e72; }
+    .detail-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .detail-card { background: #fff; border-radius: 12px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    .detail-card h3 { font-size: 14px; color: #636e72; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .detail-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f8f9fa; font-size: 14px; }
+    .detail-item:last-child { border-bottom: none; }
+    .detail-item .label { color: #636e72; }
+    .detail-item .value { font-weight: 600; }
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <nav class="sidebar">
+    <div class="sidebar-logo"><span>Luckieverse</span> Admin</div>
+    <ul class="sidebar-menu">
+      <li class="active" onclick="showPage('list')">리워드 게임 관리</li>
+      <li style="color:#636e72; cursor:default; font-size:12px; padding-top:24px;">다른 메뉴 (예시)</li>
+      <li style="color:#444; cursor:default;">오퍼월 관리</li>
+      <li style="color:#444; cursor:default;">포인트 관리</li>
+      <li style="color:#444; cursor:default;">회원 관리</li>
+    </ul>
+  </nav>
+
+  <!-- Main Content -->
+  <div class="main">
+
+    <!-- Page: Game List -->
+    <div id="page-list">
+      <div class="page-header">
+        <h1>리워드 게임 관리</h1>
+        <button class="btn btn-primary" onclick="openModal()">+ 게임 등록</button>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-label">활성 게임</div>
+          <div class="stat-value" id="stat-active">0</div>
+          <div class="stat-sub">ON 상태</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">오늘 총 플레이</div>
+          <div class="stat-value" id="stat-plays">0</div>
+          <div class="stat-sub">전 게임 합산</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">오늘 광고 노출</div>
+          <div class="stat-value" id="stat-ads">0</div>
+          <div class="stat-sub">Flow 광고 기준</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">오늘 포인트 지급</div>
+          <div class="stat-value" id="stat-points">0<span style="font-size:14px;font-weight:400;">P</span></div>
+          <div class="stat-sub">전 게임 합산</div>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>게임명</th>
+              <th>상태</th>
+              <th>클리어 조건</th>
+              <th>기본 보상</th>
+              <th>업그레이드</th>
+              <th>인게임 광고</th>
+              <th>일일 횟수</th>
+              <th>일일 한도</th>
+              <th>등록일</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="game-table-body">
+          </tbody>
+        </table>
+        <div id="empty-state" class="empty-state" style="display:none;">
+          <div class="empty-state-icon">🎮</div>
+          <div class="empty-state-text">등록된 게임이 없습니다</div>
+          <div class="empty-state-sub">위의 [+ 게임 등록] 버튼으로 첫 게임을 추가해보세요</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Page: Game Detail -->
+    <div id="page-detail" style="display:none;">
+      <div class="detail-header">
+        <button class="detail-back" onclick="showPage('list')">&#8592;</button>
+        <h1 id="detail-title">게임 상세</h1>
+        <div style="margin-left:auto; display:flex; gap:8px;">
+          <button class="btn btn-secondary btn-sm" onclick="editFromDetail()">수정</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteFromDetail()">삭제</button>
+        </div>
+      </div>
+
+      <!-- Flow Preview -->
+      <div style="background:#fff; border-radius:12px; padding:24px; box-shadow:0 2px 8px rgba(0,0,0,0.06); margin-bottom:16px;">
+        <h3 style="font-size:14px; color:#636e72; margin-bottom:16px; text-transform:uppercase; letter-spacing:0.5px;">보상 흐름 (Flow)</h3>
+        <div id="detail-flow"></div>
+      </div>
+
+      <div class="detail-cards">
+        <div class="detail-card">
+          <h3>기본 정보</h3>
+          <div id="detail-basic"></div>
+        </div>
+        <div class="detail-card">
+          <h3>보상 설정</h3>
+          <div id="detail-reward"></div>
+        </div>
+        <div class="detail-card">
+          <h3>운영 정책</h3>
+          <div id="detail-policy"></div>
+        </div>
+        <div class="detail-card">
+          <h3>업그레이드 보상</h3>
+          <div id="detail-upgrade"></div>
+        </div>
+      </div>
+
+      <!-- Detail In-Game Ads -->
+      <div style="background:#fff; border-radius:12px; padding:24px; box-shadow:0 2px 8px rgba(0,0,0,0.06); margin-top:16px;">
+        <h3 style="font-size:14px; color:#636e72; margin-bottom:16px; text-transform:uppercase; letter-spacing:0.5px;">인게임 광고 (In-Game Ads)</h3>
+        <div id="detail-ingame"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Modal: Game Registration / Edit -->
+  <div class="modal-overlay" id="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="modal-title">게임 등록</h2>
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="game-form" onsubmit="saveGame(event)">
+          <input type="hidden" id="form-id" value="">
+
+          <!-- Basic Info -->
+          <div class="form-section">
+            <div class="form-section-title">기본 정보</div>
+            <div class="form-group">
+              <label>게임명 *</label>
+              <input type="text" id="form-name" placeholder="예: 두더지 잡기" required>
+            </div>
+            <div class="form-group">
+              <label>게임 URL *</label>
+              <input type="url" id="form-url" placeholder="https://game.example.com/mole" required>
+            </div>
+            <div class="form-group">
+              <label>게임 설명</label>
+              <textarea id="form-desc" rows="2" placeholder="간단한 게임 설명"></textarea>
+            </div>
+            <div class="form-group">
+              <label>게임 유형</label>
+              <select id="form-type">
+                <option value="아케이드">아케이드</option>
+                <option value="퍼즐">퍼즐</option>
+                <option value="캐주얼">캐주얼</option>
+                <option value="기타">기타</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Reward Settings -->
+          <div class="form-section">
+            <div class="form-section-title">보상 설정</div>
+            <p style="font-size:13px; color:#636e72; margin-bottom:16px;">
+              고정 흐름: PLAY → AD(보상 수령형/필수) → REWARD → (선택) AD(업그레이드형) → 강화 REWARD
+            </p>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>클리어 조건 유형 *</label>
+                <select id="form-clear-type">
+                  <option value="스코어 도달">스코어 도달</option>
+                  <option value="스테이지 클리어">스테이지 클리어</option>
+                  <option value="미션 완료">미션 완료</option>
+                  <option value="시간 경과">시간 경과</option>
+                  <option value="생존">생존</option>
+                  <option value="출석/참여">출석/참여</option>
+                  <option value="랭킹">랭킹</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>기준값</label>
+                <input type="number" id="form-clear-value" placeholder="예: 3000" min="0">
+                <div class="form-hint">점수, 스테이지 번호, 초 등</div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>기본 보상 방식 *</label>
+              <select id="form-reward-type" onchange="onRewardTypeChange()">
+                <option value="선물상자(랜덤)">선물상자 (랜덤)</option>
+                <option value="직접 포인트">직접 포인트</option>
+                <option value="뽑기/룰렛">뽑기/룰렛</option>
+              </select>
+            </div>
+
+            <!-- 직접 포인트용: 고정값 -->
+            <div id="reward-fixed-fields" style="display:none;">
+              <div class="form-group">
+                <label>포인트 *</label>
+                <div style="display:flex; gap:8px; align-items:center;">
+                  <input type="number" id="form-reward-min" placeholder="값" min="0" style="width:100px;">
+                  <span style="color:#636e72; font-size:14px;">P (고정)</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 랜덤형용: 확률 테이블 -->
+            <div id="reward-prob-fields" style="display:none;">
+              <div class="form-group">
+                <label>포인트별 확률 설정 *</label>
+                <div class="prob-header">
+                  <span style="width:80px;">포인트</span>
+                  <span style="width:16px;"></span>
+                  <span style="width:80px;">확률(%)</span>
+                </div>
+                <div class="prob-tiers" id="reward-prob-tiers"></div>
+                <button type="button" class="prob-add" onclick="addRewardTier()">+ 구간 추가</button>
+                <div class="prob-total" id="reward-prob-total"></div>
+              </div>
+            </div>
+
+            <!-- Upgrade -->
+            <div class="upgrade-section">
+              <div class="upgrade-header">
+                <label class="toggle">
+                  <input type="checkbox" id="form-upgrade-enabled" onchange="toggleUpgrade()">
+                  <span class="toggle-slider"></span>
+                </label>
+                <span>업그레이드 보상 (추가 광고 시청 시)</span>
+              </div>
+              <div class="upgrade-fields" id="upgrade-fields">
+                <div class="form-group">
+                  <label>업그레이드 보상 방식</label>
+                  <select id="form-upgrade-type" onchange="onUpgradeTypeChange()">
+                    <option value="선물상자(강화)">선물상자 (강화)</option>
+                    <option value="직접 포인트">직접 포인트</option>
+                  </select>
+                </div>
+
+                <!-- 직접 포인트용 -->
+                <div id="upgrade-fixed-fields" style="display:none;">
+                  <div class="form-group">
+                    <label>포인트</label>
+                    <div style="display:flex; gap:8px; align-items:center;">
+                      <input type="number" id="form-upgrade-min" placeholder="값" min="0" style="width:100px;">
+                      <span style="color:#636e72; font-size:14px;">P (고정)</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 랜덤형용: 확률 테이블 -->
+                <div id="upgrade-prob-fields" style="display:none;">
+                  <div class="form-group">
+                    <label>포인트별 확률 설정</label>
+                    <div class="prob-header">
+                      <span style="width:80px;">포인트</span>
+                      <span style="width:16px;"></span>
+                      <span style="width:80px;">확률(%)</span>
+                    </div>
+                    <div class="prob-tiers" id="upgrade-prob-tiers"></div>
+                    <button type="button" class="prob-add" onclick="addUpgradeTier()">+ 구간 추가</button>
+                    <div class="prob-total" id="upgrade-prob-total"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- In-Game Ads -->
+          <div class="form-section">
+            <div class="form-section-title">인게임 광고 (In-Game Ads)</div>
+            <p style="font-size:13px; color:#636e72; margin-bottom:12px;">
+              PLAY 도중 유저가 자발적으로 시청하는 광고. 게임 내 아이템/능력/추가기회를 제공한다.
+            </p>
+            <div class="ingame-ads-list" id="ingame-ads-list"></div>
+            <button type="button" class="btn-add-ingame" onclick="addIngameAd()">+ 인게임 광고 추가</button>
+          </div>
+
+          <!-- Flow Preview -->
+          <div class="form-section">
+            <div class="form-section-title">보상 흐름 미리보기</div>
+            <div class="flow-preview" id="flow-preview"></div>
+          </div>
+
+          <!-- Operation Policy -->
+          <div class="form-section">
+            <div class="form-section-title">운영 정책</div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>일일 플레이 횟수 제한</label>
+                <div style="display:flex; gap:8px; align-items:center;">
+                  <input type="number" id="form-daily-plays" value="5" min="1" style="width:80px;">
+                  <span style="color:#636e72; font-size:14px;">회/일</span>
+                </div>
+              </div>
+              <div class="form-group">
+                <label>일일 포인트 지급 한도</label>
+                <div style="display:flex; gap:8px; align-items:center;">
+                  <input type="number" id="form-daily-points" value="15" min="1" style="width:80px;">
+                  <span style="color:#636e72; font-size:14px;">P/일</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal()">취소</button>
+        <button class="btn btn-primary" onclick="document.getElementById('game-form').requestSubmit()">저장</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ===== Data Layer (localStorage) =====
+    const STORAGE_KEY = 'reward_games';
+
+    function getGames() {
+      return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+    }
+
+    function saveGames(games) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(games));
+    }
+
+    function generateId() {
+      return 'game_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+    }
+
+    // ===== Init with sample data =====
+    function initSampleData() {
+      if (getGames().length > 0) return;
+      const samples = [
+        {
+          id: generateId(), name: '두더지 잡기', url: 'https://game.luckybus.com/mole',
+          desc: '두더지를 잡아 점수를 획득하세요', type: '아케이드', active: true,
+          clearType: '스코어 도달', clearValue: 3000,
+          rewardType: '선물상자(랜덤)', rewardMin: 1, rewardMax: 3,
+          rewardTiers: [{ points: 1, prob: 50 }, { points: 2, prob: 35 }, { points: 3, prob: 15 }],
+          upgradeEnabled: true, upgradeType: '선물상자(강화)', upgradeMin: 2, upgradeMax: 6,
+          upgradeTiers: [{ points: 2, prob: 40 }, { points: 4, prob: 35 }, { points: 6, prob: 25 }],
+          ingameAds: [],
+          dailyPlays: 5, dailyPoints: 15,
+          createdAt: '2026-03-20'
+        },
+        {
+          id: generateId(), name: '테트리스 퍼즐', url: 'https://game.luckybus.com/tetris',
+          desc: '블록을 맞춰 높은 점수를 노려보세요', type: '퍼즐', active: true,
+          clearType: '스코어 도달', clearValue: 5000,
+          rewardType: '직접 포인트', rewardMin: 3, rewardMax: 3,
+          rewardTiers: [],
+          upgradeEnabled: true, upgradeType: '직접 포인트', upgradeMin: 3, upgradeMax: 3,
+          upgradeTiers: [],
+          ingameAds: [
+            { name: '줄 초기화', resultType: '아이템', adType: '리워드 광고', limitScope: '게임당', limitCount: 3, cooldown: 60 },
+            { name: '시간 연장', resultType: '능력', adType: '리워드 광고', limitScope: '게임당', limitCount: 2, cooldown: 0 },
+            { name: '컨티뉴', resultType: '추가 기회', adType: '리워드 광고', limitScope: '게임당', limitCount: 1, cooldown: 0 }
+          ],
+          dailyPlays: 3, dailyPoints: 10,
+          createdAt: '2026-03-21'
+        },
+        {
+          id: generateId(), name: '데일리 퍼즐', url: 'https://game.luckybus.com/daily-puzzle',
+          desc: '매일 새로운 퍼즐을 풀어보세요', type: '퍼즐', active: false,
+          clearType: '미션 완료', clearValue: 0,
+          rewardType: '직접 포인트', rewardMin: 2, rewardMax: 2,
+          rewardTiers: [],
+          upgradeEnabled: true, upgradeType: '직접 포인트', upgradeMin: 2, upgradeMax: 2,
+          upgradeTiers: [],
+          ingameAds: [
+            { name: '힌트 보기', resultType: '아이템', adType: '리워드 광고', limitScope: '게임당', limitCount: 2, cooldown: 0 }
+          ],
+          dailyPlays: 1, dailyPoints: 4,
+          createdAt: '2026-03-22'
+        }
+      ];
+      saveGames(samples);
+    }
+
+    // ===== Render =====
+    function renderList() {
+      const games = getGames();
+      const tbody = document.getElementById('game-table-body');
+      const empty = document.getElementById('empty-state');
+
+      if (games.length === 0) {
+        tbody.innerHTML = '';
+        empty.style.display = 'block';
+        updateStats(games);
+        return;
+      }
+
+      empty.style.display = 'none';
+      tbody.innerHTML = games.map(g => `
+        <tr>
+          <td>
+            <strong style="cursor:pointer;color:#6c5ce7;" onclick="showDetail('${g.id}')">${g.name}</strong>
+            <div style="font-size:11px;color:#b2bec3;">${g.type}</div>
+          </td>
+          <td>
+            <label class="toggle">
+              <input type="checkbox" ${g.active ? 'checked' : ''} onchange="toggleActive('${g.id}')">
+              <span class="toggle-slider"></span>
+            </label>
+          </td>
+          <td>${g.clearType}${g.clearValue ? ' / ' + g.clearValue : ''}</td>
+          <td>${g.rewardType}<br><span style="font-size:12px;color:#636e72;">${(g.rewardTiers && g.rewardTiers.length > 0) ? tiersToSummary(g.rewardTiers) : g.rewardMin + 'P'}</span></td>
+          <td>${g.upgradeEnabled ? `<span class="badge badge-on">ON</span><br><span style="font-size:12px;color:#636e72;">${(g.upgradeTiers && g.upgradeTiers.length > 0) ? tiersToSummary(g.upgradeTiers) : g.upgradeMin + 'P'}</span>` : '<span class="badge badge-off">OFF</span>'}</td>
+          <td>${(g.ingameAds && g.ingameAds.length > 0) ? `<span style="font-weight:600;">${g.ingameAds.length}개</span><br><span style="font-size:11px;color:#636e72;">${g.ingameAds.map(a => a.name).join(', ')}</span>` : '<span style="color:#b2bec3;">없음</span>'}</td>
+          <td>${g.dailyPlays}회</td>
+          <td>${g.dailyPoints}P</td>
+          <td style="font-size:12px;color:#b2bec3;">${g.createdAt}</td>
+          <td>
+            <button class="btn btn-secondary btn-sm" onclick="editGame('${g.id}')">수정</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteGame('${g.id}')" style="margin-left:4px;">삭제</button>
+          </td>
+        </tr>
+      `).join('');
+
+      updateStats(games);
+    }
+
+    function updateStats(games) {
+      const active = games.filter(g => g.active).length;
+      document.getElementById('stat-active').textContent = active;
+      // Simulated stats
+      const plays = games.filter(g => g.active).reduce((sum, g) => sum + Math.floor(Math.random() * 100 + 50), 0);
+      const ads = Math.floor(plays * 1.8);
+      const points = games.filter(g => g.active).reduce((sum, g) => sum + Math.floor(Math.random() * 200 + 100), 0);
+      document.getElementById('stat-plays').textContent = plays;
+      document.getElementById('stat-ads').textContent = ads;
+      document.getElementById('stat-points').innerHTML = points + '<span style="font-size:14px;font-weight:400;">P</span>';
+    }
+
+    // ===== Flow Preview =====
+    function updateFlowPreview() {
+      const clearType = document.getElementById('form-clear-type').value;
+      const clearValue = document.getElementById('form-clear-value').value;
+      const rewardType = document.getElementById('form-reward-type').value;
+      const upgradeEnabled = document.getElementById('form-upgrade-enabled').checked;
+      const upgradeType = document.getElementById('form-upgrade-type')?.value || '';
+
+      // Reward summary
+      let rewardSummary;
+      if (isRandomRewardType(rewardType)) {
+        rewardSummary = tiersToSummary(rewardTiers);
+        const detail = tiersToDetail(rewardTiers);
+        rewardSummary = detail ? `${rewardSummary} [${detail}]` : rewardSummary;
+      } else {
+        const val = document.getElementById('form-reward-min').value || '?';
+        rewardSummary = val + 'P';
+      }
+
+      // Upgrade summary
+      let upgradeSummary = '';
+      if (upgradeEnabled) {
+        if (isRandomRewardType(upgradeType)) {
+          upgradeSummary = tiersToSummary(upgradeTiers);
+          const detail = tiersToDetail(upgradeTiers);
+          upgradeSummary = detail ? `${upgradeSummary} [${detail}]` : upgradeSummary;
+        } else {
+          const val = document.getElementById('form-upgrade-min')?.value || '?';
+          upgradeSummary = val + 'P';
+        }
+      }
+
+      let html = `
+        <div class="flow-step">
+          <span class="flow-step-badge play">PLAY</span>
+          <span class="flow-step-text">${clearType}${clearValue ? ' / 기준값: ' + clearValue : ''}</span>
+        </div>
+        <div class="flow-arrow">↓</div>
+        <div class="flow-step">
+          <span class="flow-step-badge ad">AD</span>
+          <span class="flow-step-text">보상 수령형 / 필수 / 리워드 광고</span>
+        </div>
+        <div class="flow-arrow">↓</div>
+        <div class="flow-step">
+          <span class="flow-step-badge reward">REWARD</span>
+          <span class="flow-step-text">${rewardType} / ${rewardSummary}</span>
+        </div>
+      `;
+
+      if (upgradeEnabled) {
+        html += `
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step">
+            <span class="flow-step-badge ad">AD</span>
+            <span class="flow-step-text">보상 업그레이드형 / 선택 / 리워드 광고</span>
+          </div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step">
+            <span class="flow-step-badge reward">REWARD</span>
+            <span class="flow-step-text">${upgradeType} / ${upgradeSummary}</span>
+          </div>
+        `;
+      }
+
+      document.getElementById('flow-preview').innerHTML = html;
+    }
+
+    // ===== Probability Tiers =====
+    let rewardTiers = [];
+    let upgradeTiers = [];
+
+    function renderProbTiers(tiers, containerId, totalId, updateFn) {
+      const container = document.getElementById(containerId);
+      const totalEl = document.getElementById(totalId);
+      container.innerHTML = tiers.map((t, idx) => `
+        <div class="prob-tier-row">
+          <input type="number" value="${t.points}" min="0" placeholder="P" onchange="${updateFn}(${idx},'points',parseInt(this.value)||0)">
+          <span>P</span>
+          <input type="number" value="${t.prob}" min="0" max="100" placeholder="%" onchange="${updateFn}(${idx},'prob',parseFloat(this.value)||0)">
+          <span>%</span>
+          <button type="button" class="prob-tier-remove" onclick="remove${updateFn === 'updateRewardTier' ? 'Reward' : 'Upgrade'}Tier(${idx})">&times;</button>
+        </div>
+      `).join('');
+      const total = tiers.reduce((sum, t) => sum + (t.prob || 0), 0);
+      totalEl.textContent = `합계: ${total}%`;
+      totalEl.className = 'prob-total ' + (Math.abs(total - 100) < 0.01 ? 'valid' : 'invalid');
+      if (tiers.length === 0) totalEl.textContent = '';
+      updateFlowPreview();
+    }
+
+    function addRewardTier() { rewardTiers.push({ points: 0, prob: 0 }); renderProbTiers(rewardTiers, 'reward-prob-tiers', 'reward-prob-total', 'updateRewardTier'); }
+    function removeRewardTier(idx) { rewardTiers.splice(idx, 1); renderProbTiers(rewardTiers, 'reward-prob-tiers', 'reward-prob-total', 'updateRewardTier'); }
+    function updateRewardTier(idx, field, value) { rewardTiers[idx][field] = value; renderProbTiers(rewardTiers, 'reward-prob-tiers', 'reward-prob-total', 'updateRewardTier'); }
+
+    function addUpgradeTier() { upgradeTiers.push({ points: 0, prob: 0 }); renderProbTiers(upgradeTiers, 'upgrade-prob-tiers', 'upgrade-prob-total', 'updateUpgradeTier'); }
+    function removeUpgradeTier(idx) { upgradeTiers.splice(idx, 1); renderProbTiers(upgradeTiers, 'upgrade-prob-tiers', 'upgrade-prob-total', 'updateUpgradeTier'); }
+    function updateUpgradeTier(idx, field, value) { upgradeTiers[idx][field] = value; renderProbTiers(upgradeTiers, 'upgrade-prob-tiers', 'upgrade-prob-total', 'updateUpgradeTier'); }
+
+    function isRandomRewardType(type) {
+      return type === '선물상자(랜덤)' || type === '뽑기/룰렛' || type === '선물상자(강화)';
+    }
+
+    function onRewardTypeChange() {
+      const type = document.getElementById('form-reward-type').value;
+      const isRandom = isRandomRewardType(type);
+      document.getElementById('reward-fixed-fields').style.display = isRandom ? 'none' : 'block';
+      document.getElementById('reward-prob-fields').style.display = isRandom ? 'block' : 'none';
+      if (isRandom && rewardTiers.length === 0) {
+        rewardTiers = [{ points: 1, prob: 50 }, { points: 2, prob: 35 }, { points: 3, prob: 15 }];
+        renderProbTiers(rewardTiers, 'reward-prob-tiers', 'reward-prob-total', 'updateRewardTier');
+      }
+      updateFlowPreview();
+    }
+
+    function onUpgradeTypeChange() {
+      const type = document.getElementById('form-upgrade-type').value;
+      const isRandom = isRandomRewardType(type);
+      document.getElementById('upgrade-fixed-fields').style.display = isRandom ? 'none' : 'block';
+      document.getElementById('upgrade-prob-fields').style.display = isRandom ? 'block' : 'none';
+      if (isRandom && upgradeTiers.length === 0) {
+        upgradeTiers = [{ points: 2, prob: 40 }, { points: 4, prob: 35 }, { points: 6, prob: 25 }];
+        renderProbTiers(upgradeTiers, 'upgrade-prob-tiers', 'upgrade-prob-total', 'updateUpgradeTier');
+      }
+      updateFlowPreview();
+    }
+
+    function tiersToSummary(tiers) {
+      if (!tiers || tiers.length === 0) return '?P';
+      const sorted = [...tiers].sort((a, b) => a.points - b.points);
+      return sorted[0].points + '~' + sorted[sorted.length - 1].points + 'P';
+    }
+
+    function tiersToDetail(tiers) {
+      if (!tiers || tiers.length === 0) return '';
+      return tiers.map(t => `${t.points}P(${t.prob}%)`).join(', ');
+    }
+
+    // ===== In-Game Ads =====
+    let currentIngameAds = [];
+
+    function renderIngameAds() {
+      const list = document.getElementById('ingame-ads-list');
+      if (currentIngameAds.length === 0) {
+        list.innerHTML = '<div class="ingame-empty">등록된 인게임 광고가 없습니다</div>';
+        return;
+      }
+      list.innerHTML = currentIngameAds.map((ad, idx) => `
+        <div class="ingame-ad-item">
+          <button type="button" class="ingame-ad-remove" onclick="removeIngameAd(${idx})">&times;</button>
+          <div class="ingame-ad-row">
+            <div class="ingame-ad-field" style="flex:2;">
+              <label>아이템명</label>
+              <input type="text" value="${ad.name}" onchange="updateIngameAd(${idx},'name',this.value)" placeholder="예: 줄 초기화">
+            </div>
+            <div class="ingame-ad-field">
+              <label>결과 유형</label>
+              <select onchange="updateIngameAd(${idx},'resultType',this.value)">
+                <option value="아이템" ${ad.resultType === '아이템' ? 'selected' : ''}>아이템</option>
+                <option value="능력" ${ad.resultType === '능력' ? 'selected' : ''}>능력</option>
+                <option value="추가 기회" ${ad.resultType === '추가 기회' ? 'selected' : ''}>추가 기회</option>
+              </select>
+            </div>
+            <div class="ingame-ad-field">
+              <label>광고 유형</label>
+              <select onchange="updateIngameAd(${idx},'adType',this.value)">
+                <option value="리워드 광고" ${ad.adType === '리워드 광고' ? 'selected' : ''}>리워드 광고</option>
+                <option value="전면 광고" ${ad.adType === '전면 광고' ? 'selected' : ''}>전면 광고</option>
+              </select>
+            </div>
+          </div>
+          <div class="ingame-ad-row">
+            <div class="ingame-ad-field">
+              <label>제한 단위</label>
+              <select onchange="updateIngameAd(${idx},'limitScope',this.value)">
+                <option value="게임당" ${ad.limitScope === '게임당' ? 'selected' : ''}>게임당</option>
+                <option value="스테이지당" ${ad.limitScope === '스테이지당' ? 'selected' : ''}>스테이지당</option>
+              </select>
+            </div>
+            <div class="ingame-ad-field">
+              <label>최대 횟수</label>
+              <input type="number" value="${ad.limitCount}" min="1" onchange="updateIngameAd(${idx},'limitCount',parseInt(this.value)||1)">
+            </div>
+            <div class="ingame-ad-field">
+              <label>쿨타임 (초)</label>
+              <input type="number" value="${ad.cooldown}" min="0" onchange="updateIngameAd(${idx},'cooldown',parseInt(this.value)||0)">
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function addIngameAd() {
+      currentIngameAds.push({
+        name: '', resultType: '아이템', adType: '리워드 광고',
+        limitScope: '게임당', limitCount: 3, cooldown: 0
+      });
+      renderIngameAds();
+    }
+
+    function removeIngameAd(idx) {
+      currentIngameAds.splice(idx, 1);
+      renderIngameAds();
+    }
+
+    function updateIngameAd(idx, field, value) {
+      currentIngameAds[idx][field] = value;
+    }
+
+    // ===== Modal =====
+    function openModal(gameId) {
+      document.getElementById('modal-overlay').classList.add('show');
+      document.getElementById('modal-title').textContent = gameId ? '게임 수정' : '게임 등록';
+      document.getElementById('form-id').value = gameId || '';
+
+      if (gameId) {
+        const game = getGames().find(g => g.id === gameId);
+        if (game) {
+          document.getElementById('form-name').value = game.name;
+          document.getElementById('form-url').value = game.url;
+          document.getElementById('form-desc').value = game.desc || '';
+          document.getElementById('form-type').value = game.type;
+          document.getElementById('form-clear-type').value = game.clearType;
+          document.getElementById('form-clear-value').value = game.clearValue || '';
+          document.getElementById('form-reward-type').value = game.rewardType;
+          document.getElementById('form-reward-min').value = game.rewardMin || '';
+          document.getElementById('form-upgrade-enabled').checked = game.upgradeEnabled;
+          document.getElementById('form-upgrade-type').value = game.upgradeType || '선물상자(강화)';
+          document.getElementById('form-upgrade-min').value = game.upgradeMin || '';
+          rewardTiers = JSON.parse(JSON.stringify(game.rewardTiers || []));
+          upgradeTiers = JSON.parse(JSON.stringify(game.upgradeTiers || []));
+          document.getElementById('form-daily-plays').value = game.dailyPlays;
+          document.getElementById('form-daily-points').value = game.dailyPoints;
+          currentIngameAds = JSON.parse(JSON.stringify(game.ingameAds || []));
+          toggleUpgrade();
+          onRewardTypeChange();
+          onUpgradeTypeChange();
+          renderProbTiers(rewardTiers, 'reward-prob-tiers', 'reward-prob-total', 'updateRewardTier');
+          renderProbTiers(upgradeTiers, 'upgrade-prob-tiers', 'upgrade-prob-total', 'updateUpgradeTier');
+        }
+      } else {
+        document.getElementById('game-form').reset();
+        document.getElementById('form-daily-plays').value = 5;
+        document.getElementById('form-daily-points').value = 15;
+        currentIngameAds = [];
+        rewardTiers = [];
+        upgradeTiers = [];
+        toggleUpgrade();
+        onRewardTypeChange();
+      }
+      renderIngameAds();
+      updateFlowPreview();
+    }
+
+    function closeModal() {
+      document.getElementById('modal-overlay').classList.remove('show');
+    }
+
+    function toggleUpgrade() {
+      const enabled = document.getElementById('form-upgrade-enabled').checked;
+      document.getElementById('upgrade-fields').classList.toggle('show', enabled);
+      updateFlowPreview();
+    }
+
+    // ===== CRUD =====
+    function saveGame(e) {
+      e.preventDefault();
+      const games = getGames();
+      const id = document.getElementById('form-id').value;
+
+      const gameData = {
+        id: id || generateId(),
+        name: document.getElementById('form-name').value,
+        url: document.getElementById('form-url').value,
+        desc: document.getElementById('form-desc').value,
+        type: document.getElementById('form-type').value,
+        active: id ? (games.find(g => g.id === id)?.active ?? true) : true,
+        clearType: document.getElementById('form-clear-type').value,
+        clearValue: parseInt(document.getElementById('form-clear-value').value) || 0,
+        rewardType: document.getElementById('form-reward-type').value,
+        rewardMin: parseInt(document.getElementById('form-reward-min').value) || 0,
+        rewardMax: 0,
+        rewardTiers: isRandomRewardType(document.getElementById('form-reward-type').value) ? [...rewardTiers] : [],
+        upgradeEnabled: document.getElementById('form-upgrade-enabled').checked,
+        upgradeType: document.getElementById('form-upgrade-type').value,
+        upgradeMin: parseInt(document.getElementById('form-upgrade-min')?.value) || 0,
+        upgradeMax: 0,
+        upgradeTiers: isRandomRewardType(document.getElementById('form-upgrade-type')?.value) ? [...upgradeTiers] : [],
+        ingameAds: currentIngameAds.filter(a => a.name.trim() !== ''),
+        dailyPlays: parseInt(document.getElementById('form-daily-plays').value) || 5,
+        dailyPoints: parseInt(document.getElementById('form-daily-points').value) || 15,
+        createdAt: id ? (games.find(g => g.id === id)?.createdAt || new Date().toISOString().split('T')[0]) : new Date().toISOString().split('T')[0]
+      };
+
+      if (id) {
+        const idx = games.findIndex(g => g.id === id);
+        if (idx !== -1) games[idx] = gameData;
+      } else {
+        games.push(gameData);
+      }
+
+      saveGames(games);
+      closeModal();
+      renderList();
+    }
+
+    function editGame(id) {
+      openModal(id);
+    }
+
+    function deleteGame(id) {
+      if (!confirm('이 게임을 삭제하시겠습니까?')) return;
+      const games = getGames().filter(g => g.id !== id);
+      saveGames(games);
+      renderList();
+    }
+
+    function toggleActive(id) {
+      const games = getGames();
+      const game = games.find(g => g.id === id);
+      if (game) {
+        game.active = !game.active;
+        saveGames(games);
+        renderList();
+      }
+    }
+
+    // ===== Detail View =====
+    let currentDetailId = null;
+
+    function showDetail(id) {
+      currentDetailId = id;
+      const game = getGames().find(g => g.id === id);
+      if (!game) return;
+
+      document.getElementById('page-list').style.display = 'none';
+      document.getElementById('page-detail').style.display = 'block';
+      document.getElementById('detail-title').textContent = game.name;
+
+      // Flow
+      const detailRewardSummary = (game.rewardTiers && game.rewardTiers.length > 0)
+        ? tiersToSummary(game.rewardTiers) + ' [' + tiersToDetail(game.rewardTiers) + ']'
+        : game.rewardMin + 'P';
+      const detailUpgradeSummary = (game.upgradeTiers && game.upgradeTiers.length > 0)
+        ? tiersToSummary(game.upgradeTiers) + ' [' + tiersToDetail(game.upgradeTiers) + ']'
+        : game.upgradeMin + 'P';
+
+      let flowHtml = `
+        <div class="flow-step">
+          <span class="flow-step-badge play">PLAY</span>
+          <span class="flow-step-text">${game.clearType}${game.clearValue ? ' / 기준값: ' + game.clearValue : ''}</span>
+        </div>
+        <div class="flow-arrow">↓</div>
+        <div class="flow-step">
+          <span class="flow-step-badge ad">AD</span>
+          <span class="flow-step-text">보상 수령형 / 필수 / 리워드 광고</span>
+        </div>
+        <div class="flow-arrow">↓</div>
+        <div class="flow-step">
+          <span class="flow-step-badge reward">REWARD</span>
+          <span class="flow-step-text">${game.rewardType} / ${detailRewardSummary}</span>
+        </div>
+      `;
+      if (game.upgradeEnabled) {
+        flowHtml += `
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step">
+            <span class="flow-step-badge ad">AD</span>
+            <span class="flow-step-text">보상 업그레이드형 / 선택 / 리워드 광고</span>
+          </div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step">
+            <span class="flow-step-badge reward">REWARD</span>
+            <span class="flow-step-text">${game.upgradeType} / ${detailUpgradeSummary}</span>
+          </div>
+        `;
+      }
+      document.getElementById('detail-flow').innerHTML = flowHtml;
+
+      // Basic
+      document.getElementById('detail-basic').innerHTML = `
+        <div class="detail-item"><span class="label">게임 URL</span><span class="value" style="font-size:12px;word-break:break-all;">${game.url}</span></div>
+        <div class="detail-item"><span class="label">유형</span><span class="value">${game.type}</span></div>
+        <div class="detail-item"><span class="label">상태</span><span class="value"><span class="badge ${game.active ? 'badge-on' : 'badge-off'}">${game.active ? 'ON' : 'OFF'}</span></span></div>
+        <div class="detail-item"><span class="label">설명</span><span class="value">${game.desc || '-'}</span></div>
+        <div class="detail-item"><span class="label">등록일</span><span class="value">${game.createdAt}</span></div>
+      `;
+
+      // Reward
+      const rTiers = game.rewardTiers || [];
+      document.getElementById('detail-reward').innerHTML = `
+        <div class="detail-item"><span class="label">클리어 조건</span><span class="value">${game.clearType}</span></div>
+        <div class="detail-item"><span class="label">기준값</span><span class="value">${game.clearValue || '-'}</span></div>
+        <div class="detail-item"><span class="label">보상 방식</span><span class="value">${game.rewardType}</span></div>
+        ${rTiers.length > 0
+          ? `<div class="detail-item"><span class="label">확률 설정</span><span class="value" style="text-align:right;">${rTiers.map(t => t.points + 'P(' + t.prob + '%)').join(', ')}</span></div>`
+          : `<div class="detail-item"><span class="label">포인트</span><span class="value">${game.rewardMin}P</span></div>`
+        }
+      `;
+
+      // Policy
+      document.getElementById('detail-policy').innerHTML = `
+        <div class="detail-item"><span class="label">일일 플레이 횟수</span><span class="value">${game.dailyPlays}회</span></div>
+        <div class="detail-item"><span class="label">일일 포인트 한도</span><span class="value">${game.dailyPoints}P</span></div>
+      `;
+
+      // In-Game Ads
+      const ingameAds = game.ingameAds || [];
+      document.getElementById('detail-ingame').innerHTML = ingameAds.length > 0
+        ? ingameAds.map(ad => `
+          <div class="detail-ingame-item">
+            <div class="detail-ingame-name">${ad.name}</div>
+            <div class="detail-ingame-props">
+              <div class="detail-ingame-prop">유형: <span>${ad.resultType}</span></div>
+              <div class="detail-ingame-prop">광고: <span>${ad.adType}</span></div>
+              <div class="detail-ingame-prop">제한: <span>${ad.limitScope} ${ad.limitCount}회</span></div>
+              <div class="detail-ingame-prop">쿨타임: <span>${ad.cooldown > 0 ? ad.cooldown + '초' : '없음'}</span></div>
+            </div>
+          </div>
+        `).join('')
+        : '<div style="color:#b2bec3; font-size:13px; text-align:center; padding:16px;">등록된 인게임 광고 없음</div>';
+
+      // Upgrade
+      const uTiers = game.upgradeTiers || [];
+      document.getElementById('detail-upgrade').innerHTML = game.upgradeEnabled ? `
+        <div class="detail-item"><span class="label">상태</span><span class="value"><span class="badge badge-on">ON</span></span></div>
+        <div class="detail-item"><span class="label">보상 방식</span><span class="value">${game.upgradeType}</span></div>
+        ${uTiers.length > 0
+          ? `<div class="detail-item"><span class="label">확률 설정</span><span class="value" style="text-align:right;">${uTiers.map(t => t.points + 'P(' + t.prob + '%)').join(', ')}</span></div>`
+          : `<div class="detail-item"><span class="label">포인트</span><span class="value">${game.upgradeMin}P</span></div>`
+        }
+      ` : `
+        <div class="detail-item"><span class="label">상태</span><span class="value"><span class="badge badge-off">OFF</span></span></div>
+      `;
+    }
+
+    function showPage(page) {
+      document.getElementById('page-list').style.display = page === 'list' ? 'block' : 'none';
+      document.getElementById('page-detail').style.display = page === 'detail' ? 'block' : 'none';
+      if (page === 'list') renderList();
+    }
+
+    function editFromDetail() {
+      if (currentDetailId) openModal(currentDetailId);
+    }
+
+    function deleteFromDetail() {
+      if (currentDetailId) {
+        deleteGame(currentDetailId);
+        showPage('list');
+      }
+    }
+
+    // ===== Event Listeners for Flow Preview Update =====
+    ['form-clear-type', 'form-clear-value', 'form-reward-type', 'form-reward-min',
+     'form-upgrade-type', 'form-upgrade-min'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.addEventListener('input', updateFlowPreview);
+        el.addEventListener('change', updateFlowPreview);
+      }
+    });
+
+    // ===== Init =====
+    // 인게임 광고 필드 추가로 샘플 데이터 재생성 (한번만 실행)
+    const DATA_VERSION = 'v3_prob';
+    if (localStorage.getItem('reward_games_version') !== DATA_VERSION) {
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.setItem('reward_games_version', DATA_VERSION);
+    }
+    initSampleData();
+    renderList();
+  </script>
+</body>
+</html>
