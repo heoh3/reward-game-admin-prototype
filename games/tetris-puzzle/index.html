@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Luckieverse - 두더지 퍼즐</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+body { background:#2c1810; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; display:flex; justify-content:center; align-items:center; min-height:100vh; overflow:hidden; }
+
+/* Container - mobile size */
+.game-container { position:relative; width:375px; height:740px; overflow:hidden; border-radius:20px; box-shadow:0 0 40px rgba(0,0,0,0.5); }
+
+/* Backgrounds */
+.bg-cave { background: linear-gradient(180deg, #4a3728 0%, #6b5240 15%, #8b7355 30%, #c4a882 50%, #e8d5b5 70%, #f5ecd8 100%); }
+.bg-grass { background: linear-gradient(180deg, #e8f5e1 0%, #a8d86e 20%, #8bc63f 50%, #7ab832 80%, #6ba52a 100%); }
+
+/* Header */
+.game-header { position:absolute; top:0; left:0; right:0; height:100px; padding:12px 16px; z-index:10; background:linear-gradient(180deg, rgba(74,55,40,0.95) 0%, rgba(74,55,40,0.7) 80%, transparent 100%); }
+.header-row { display:flex; justify-content:space-between; align-items:center; }
+.score-box { background:rgba(0,0,0,0.3); border-radius:12px; padding:6px 14px; color:#ffd700; }
+.score-label { font-size:10px; color:#c4a882; }
+.score-value { font-size:22px; font-weight:800; }
+.target-box { background:rgba(255,215,0,0.15); border:1px solid rgba(255,215,0,0.3); border-radius:12px; padding:6px 14px; color:#ffd700; text-align:center; }
+.target-label { font-size:10px; color:#c4a882; }
+.target-value { font-size:14px; font-weight:700; }
+.timer-box { background:rgba(0,0,0,0.3); border-radius:12px; padding:6px 14px; color:#fff; text-align:center; }
+.timer-label { font-size:10px; color:#c4a882; }
+.timer-value { font-size:22px; font-weight:800; }
+.timer-value.warning { color:#ff6b6b; animation:pulse 0.5s infinite; }
+@keyframes pulse { 50% { opacity:0.5; } }
+
+/* Progress bar */
+.progress-wrap { margin-top:8px; background:rgba(0,0,0,0.3); border-radius:6px; height:8px; overflow:hidden; }
+.progress-bar { height:100%; background:linear-gradient(90deg, #ffd700, #ffaa00); border-radius:6px; transition:width 0.3s; }
+
+/* Game Board */
+.game-board-wrap { position:absolute; top:100px; left:50%; transform:translateX(-50%); }
+canvas#gameBoard { border-radius:8px; display:block; background:rgba(0,0,0,0.2); border:2px solid rgba(139,115,85,0.4); }
+
+/* Next piece */
+.next-piece-box { position:absolute; top:108px; right:12px; background:rgba(0,0,0,0.3); border-radius:12px; padding:8px; text-align:center; }
+.next-label { font-size:10px; color:#c4a882; margin-bottom:4px; }
+canvas#nextPiece { display:block; border-radius:4px; }
+
+/* In-game ad items */
+.ingame-items { position:absolute; bottom:16px; left:0; right:0; display:flex; justify-content:center; gap:10px; padding:0 12px; z-index:10; }
+.ingame-btn { background:rgba(74,55,40,0.9); border:2px solid #c4a882; border-radius:14px; padding:8px 10px; color:#fff; font-size:11px; font-weight:700; cursor:pointer; text-align:center; min-width:80px; transition:all 0.2s; position:relative; }
+.ingame-btn:active { transform:scale(0.95); }
+.ingame-btn.disabled { opacity:0.4; pointer-events:none; }
+.ingame-btn .item-icon { font-size:20px; display:block; margin-bottom:2px; }
+.ingame-btn .item-name { display:block; font-size:10px; }
+.ingame-btn .item-count { position:absolute; top:-6px; right:-6px; background:#ff6b6b; color:#fff; font-size:10px; font-weight:800; width:20px; height:20px; border-radius:50%; display:flex; align-items:center; justify-content:center; }
+.ingame-btn .ad-badge { font-size:8px; color:#ffd700; display:block; margin-top:2px; }
+
+/* Controls - swipe area */
+.touch-area { position:absolute; top:100px; left:0; right:0; bottom:80px; z-index:5; }
+
+/* Overlays */
+.overlay { position:absolute; top:0; left:0; right:0; bottom:0; display:none; z-index:100; flex-direction:column; align-items:center; justify-content:center; }
+.overlay.show { display:flex; }
+.overlay-bg { position:absolute; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.7); }
+.overlay-content { position:relative; z-index:1; text-align:center; padding:24px; width:100%; }
+
+/* Start Screen */
+.start-screen .title { font-size:32px; font-weight:900; color:#ffd700; text-shadow:0 3px 6px rgba(0,0,0,0.5); margin-bottom:4px; }
+.start-screen .subtitle { font-size:14px; color:#c4a882; margin-bottom:32px; }
+.start-screen .mole-char { font-size:80px; margin-bottom:24px; display:block; }
+.start-screen .rules { background:rgba(0,0,0,0.3); border-radius:16px; padding:16px; margin:0 24px 24px; text-align:left; color:#e8d5b5; font-size:13px; line-height:1.8; }
+.start-screen .rules strong { color:#ffd700; }
+
+/* Buttons */
+.game-btn { padding:14px 40px; border:none; border-radius:50px; font-size:18px; font-weight:800; cursor:pointer; transition:all 0.2s; }
+.game-btn:active { transform:scale(0.95); }
+.btn-gold { background:linear-gradient(135deg, #ffd700, #ffaa00); color:#4a3728; box-shadow:0 4px 15px rgba(255,215,0,0.4); }
+.btn-green { background:linear-gradient(135deg, #8bc63f, #6ba52a); color:#fff; box-shadow:0 4px 15px rgba(107,165,42,0.4); }
+.btn-outline { background:transparent; border:2px solid #c4a882; color:#c4a882; padding:12px 32px; font-size:14px; }
+
+/* Ad Screen - Rewarded Video Style */
+.ad-fullscreen { position:absolute; top:0; left:0; right:0; bottom:0; background:#000; z-index:200; display:none; flex-direction:column; }
+.ad-fullscreen.show { display:flex; }
+.ad-topbar { display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:rgba(0,0,0,0.6); position:absolute; top:0; left:0; right:0; z-index:10; }
+.ad-label { background:rgba(255,255,255,0.15); color:#aaa; font-size:10px; padding:3px 8px; border-radius:4px; letter-spacing:0.5px; }
+.ad-skip-btn { background:rgba(255,255,255,0.15); color:#fff; font-size:12px; padding:6px 14px; border-radius:20px; border:1px solid rgba(255,255,255,0.3); cursor:pointer; transition:all 0.2s; }
+.ad-skip-btn.active { background:rgba(255,255,255,0.25); border-color:#fff; }
+.ad-skip-btn.active:hover { background:rgba(255,255,255,0.35); }
+.ad-video-area { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; position:relative; overflow:hidden; }
+.ad-video-content { width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; position:relative; }
+.ad-creative { width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:60px 24px 120px; }
+.ad-creative-bg { position:absolute; top:0; left:0; right:0; bottom:0; opacity:0.3; }
+.ad-creative-bg.type1 { background:linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+.ad-creative-bg.type2 { background:linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+.ad-creative-icon { font-size:72px; margin-bottom:16px; position:relative; z-index:1; animation:adFloat 2s ease-in-out infinite; }
+@keyframes adFloat { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-8px); } }
+.ad-creative-title { font-size:24px; font-weight:800; color:#fff; margin-bottom:8px; position:relative; z-index:1; text-shadow:0 2px 8px rgba(0,0,0,0.3); }
+.ad-creative-desc { font-size:14px; color:rgba(255,255,255,0.8); margin-bottom:20px; position:relative; z-index:1; line-height:1.5; }
+.ad-creative-rating { display:flex; align-items:center; gap:4px; color:#ffd700; font-size:14px; position:relative; z-index:1; margin-bottom:8px; }
+.ad-creative-downloads { font-size:11px; color:rgba(255,255,255,0.5); position:relative; z-index:1; }
+.ad-cta { position:absolute; bottom:60px; left:24px; right:24px; z-index:1; }
+.ad-cta-btn { display:block; width:100%; padding:14px; background:linear-gradient(135deg, #00b894, #00a381); color:#fff; border:none; border-radius:12px; font-size:16px; font-weight:700; cursor:pointer; text-align:center; box-shadow:0 4px 15px rgba(0,184,148,0.4); }
+.ad-bottombar { position:absolute; bottom:0; left:0; right:0; z-index:10; }
+.ad-progress-wrap { height:4px; background:rgba(255,255,255,0.15); }
+.ad-progress-bar { height:100%; background:#ffd700; transition:width 0.1s linear; }
+.ad-bottom-info { display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:rgba(0,0,0,0.8); }
+.ad-bottom-left { display:flex; align-items:center; gap:8px; }
+.ad-advertiser-icon { width:28px; height:28px; border-radius:6px; background:linear-gradient(135deg, #667eea, #764ba2); display:flex; align-items:center; justify-content:center; font-size:14px; }
+.ad-advertiser-name { font-size:11px; color:#aaa; }
+.ad-bottom-right { display:flex; align-items:center; gap:12px; }
+.ad-sound-btn { background:none; border:none; color:#aaa; font-size:16px; cursor:pointer; }
+.ad-timer-text { font-size:11px; color:#aaa; }
+.ad-reward-badge { position:absolute; top:50px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.7); border:1px solid rgba(255,215,0,0.4); border-radius:20px; padding:6px 16px; display:flex; align-items:center; gap:6px; z-index:10; }
+.ad-reward-badge-icon { font-size:14px; }
+.ad-reward-badge-text { font-size:11px; color:#ffd700; font-weight:600; }
+
+/* Reward Screen */
+.reward-screen .reward-box { background:linear-gradient(135deg, #4a3728, #6b5240); border-radius:20px; margin:0 24px; padding:32px 24px; border:2px solid #c4a882; }
+.reward-screen .reward-icon { font-size:64px; margin-bottom:12px; animation:bounce 0.6s ease infinite; }
+@keyframes bounce { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-10px); } }
+.reward-screen .reward-title { font-size:20px; font-weight:700; color:#ffd700; margin-bottom:4px; }
+.reward-screen .reward-points { font-size:48px; font-weight:900; color:#ffd700; margin-bottom:4px; text-shadow:0 2px 10px rgba(255,215,0,0.5); }
+.reward-screen .reward-sub { font-size:13px; color:#c4a882; margin-bottom:24px; }
+
+/* Game Over */
+.gameover-screen .go-box { background:linear-gradient(135deg, #3d1f1f, #5a2d2d); border-radius:20px; margin:0 24px; padding:32px 24px; border:2px solid #ff6b6b; }
+.gameover-screen .go-icon { font-size:64px; margin-bottom:12px; }
+.gameover-screen .go-title { font-size:22px; font-weight:700; color:#ff6b6b; margin-bottom:8px; }
+.gameover-screen .go-score { font-size:16px; color:#c4a882; margin-bottom:20px; }
+.gameover-screen .go-score span { color:#ffd700; font-weight:700; font-size:20px; }
+
+/* Clear Screen */
+.clear-screen .clear-box { background:linear-gradient(135deg, #2a4a1f, #3d6b2a); border-radius:20px; margin:0 24px; padding:32px 24px; border:2px solid #8bc63f; }
+.clear-screen .clear-icon { font-size:64px; margin-bottom:12px; }
+.clear-screen .clear-title { font-size:24px; font-weight:900; color:#8bc63f; margin-bottom:4px; }
+.clear-screen .clear-score { font-size:16px; color:#c4a882; margin-bottom:20px; }
+
+/* Complete Screen */
+.complete-screen .comp-box { background:linear-gradient(135deg, #4a3728, #6b5240); border-radius:20px; margin:0 24px; padding:32px 24px; border:2px solid #ffd700; }
+.complete-screen .total-label { font-size:14px; color:#c4a882; margin-bottom:4px; }
+.complete-screen .total-points { font-size:56px; font-weight:900; color:#ffd700; margin-bottom:16px; text-shadow:0 4px 20px rgba(255,215,0,0.5); }
+
+/* Confetti */
+.confetti { position:absolute; top:0; left:0; right:0; bottom:0; pointer-events:none; overflow:hidden; z-index:2; }
+.confetti-piece { position:absolute; width:8px; height:8px; border-radius:2px; animation:fall linear forwards; }
+@keyframes fall { 0% { transform:translateY(-20px) rotate(0deg); opacity:1; } 100% { transform:translateY(740px) rotate(720deg); opacity:0; } }
+</style>
+</head>
+<body>
+
+<div class="game-container bg-cave" id="gameContainer">
+  <!-- Header -->
+  <div class="game-header" id="gameHeader" style="display:none;">
+    <div class="header-row">
+      <div class="score-box">
+        <div class="score-label">SCORE</div>
+        <div class="score-value" id="scoreDisplay">0</div>
+      </div>
+      <div class="target-box">
+        <div class="target-label">TARGET</div>
+        <div class="target-value">3,000</div>
+      </div>
+      <div class="timer-box">
+        <div class="timer-label">TIME</div>
+        <div class="timer-value" id="timerDisplay">2:00</div>
+      </div>
+    </div>
+    <div class="progress-wrap">
+      <div class="progress-bar" id="progressBar" style="width:0%"></div>
+    </div>
+  </div>
+
+  <!-- Game Board -->
+  <canvas id="gameBoard" style="display:none;"></canvas>
+
+  <!-- Next Piece -->
+  <div class="next-piece-box" id="nextBox" style="display:none;">
+    <div class="next-label">NEXT</div>
+    <canvas id="nextPiece" width="80" height="80"></canvas>
+  </div>
+
+  <!-- Touch Area -->
+  <div class="touch-area" id="touchArea" style="display:none;"></div>
+
+  <!-- In-Game Ad Items -->
+  <div class="ingame-items" id="ingameItems" style="display:none;">
+    <button class="ingame-btn" id="itemClear" onclick="useItem('clear')">
+      <span class="item-count" id="clearCount">3</span>
+      <span class="item-icon">💥</span>
+      <span class="item-name">줄 초기화</span>
+      <span class="ad-badge">AD</span>
+    </button>
+    <button class="ingame-btn" id="itemTime" onclick="useItem('time')">
+      <span class="item-count" id="timeCount">2</span>
+      <span class="item-icon">⏰</span>
+      <span class="item-name">시간 연장</span>
+      <span class="ad-badge">AD</span>
+    </button>
+    <button class="ingame-btn" id="itemContinue" onclick="useItem('continue')" style="display:none;">
+      <span class="item-count" id="continueCount">1</span>
+      <span class="item-icon">💖</span>
+      <span class="item-name">컨티뉴</span>
+      <span class="ad-badge">AD</span>
+    </button>
+  </div>
+
+  <!-- START SCREEN -->
+  <div class="overlay show" id="startScreen">
+    <div class="overlay-bg"></div>
+    <div class="overlay-content">
+      <span class="start-screen mole-char">⛏️</span>
+      <div class="start-screen">
+        <div class="title">두더지 퍼즐</div>
+        <div class="subtitle">블록을 맞춰 목표 점수를 달성하세요!</div>
+        <div class="rules">
+          <strong>🎯 목표:</strong> 2분 안에 3,000점 달성<br>
+          <strong>📦 조작:</strong> 좌우 스와이프 이동, 아래 스와이프 드롭, 탭 회전<br>
+          <strong>💰 보상:</strong> 클리어 시 포인트 획득<br>
+          <strong>💥 아이템:</strong> 광고 시청으로 특수 아이템 사용
+        </div>
+        <button class="game-btn btn-gold" onclick="startGame()">게임 시작</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- GAME OVER SCREEN -->
+  <div class="overlay" id="gameoverScreen">
+    <div class="overlay-bg"></div>
+    <div class="overlay-content gameover-screen">
+      <div class="go-box">
+        <div class="go-icon">😢</div>
+        <div class="go-title">게임 오버</div>
+        <div class="go-score">최종 점수: <span id="goScore">0</span></div>
+        <button class="game-btn btn-gold" id="continueBtn" onclick="useContinue()" style="margin-bottom:12px;">
+          💖 컨티뉴 (AD 시청)
+        </button>
+        <br>
+        <button class="game-btn btn-outline" onclick="resetGame()">처음으로</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CLEAR SCREEN -->
+  <div class="overlay" id="clearScreen">
+    <div class="overlay-bg"></div>
+    <div class="overlay-content clear-screen">
+      <div class="confetti" id="clearConfetti"></div>
+      <div class="clear-box">
+        <div class="clear-icon">🎉</div>
+        <div class="clear-title">스테이지 클리어!</div>
+        <div class="clear-score">최종 점수: <span id="clearScore">0</span></div>
+        <button class="game-btn btn-green" onclick="showAdReward()">보상 받기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- AD - 보상 수령형 (전체화면 리워드 광고) -->
+  <div class="ad-fullscreen" id="adRewardScreen">
+    <div class="ad-topbar">
+      <span class="ad-label">AD</span>
+      <button class="ad-skip-btn" id="adSkip1" onclick="skipAd(1)">5초 후 닫기</button>
+    </div>
+    <div class="ad-reward-badge">
+      <span class="ad-reward-badge-icon">🎁</span>
+      <span class="ad-reward-badge-text">시청 완료 시 보상 수령</span>
+    </div>
+    <div class="ad-video-area">
+      <div class="ad-creative">
+        <div class="ad-creative-bg type1"></div>
+        <div class="ad-creative-icon">🏰</div>
+        <div class="ad-creative-title">캐슬 히어로즈</div>
+        <div class="ad-creative-desc">나만의 왕국을 건설하고<br>영웅들과 함께 모험을 떠나세요!</div>
+        <div class="ad-creative-rating">⭐⭐⭐⭐⭐ 4.8</div>
+        <div class="ad-creative-downloads">1,000만+ 다운로드</div>
+      </div>
+      <div class="ad-cta">
+        <button class="ad-cta-btn">지금 무료 설치</button>
+      </div>
+    </div>
+    <div class="ad-bottombar">
+      <div class="ad-progress-wrap"><div class="ad-progress-bar" id="adProgress1" style="width:0%"></div></div>
+      <div class="ad-bottom-info">
+        <div class="ad-bottom-left">
+          <div class="ad-advertiser-icon">🏰</div>
+          <span class="ad-advertiser-name">Castle Heroes Inc.</span>
+        </div>
+        <div class="ad-bottom-right">
+          <button class="ad-sound-btn" id="adSound1" onclick="toggleAdSound(1)">🔊</button>
+          <span class="ad-timer-text" id="adTimerText1">0:30</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AD - 인게임 아이템용 -->
+  <div class="ad-fullscreen" id="adIngameScreen">
+    <div class="ad-topbar">
+      <span class="ad-label">AD</span>
+      <button class="ad-skip-btn" id="adSkip3" onclick="skipAd(3)">3초 후 닫기</button>
+    </div>
+    <div class="ad-reward-badge">
+      <span class="ad-reward-badge-icon">💥</span>
+      <span class="ad-reward-badge-text">시청 완료 시 아이템 사용!</span>
+    </div>
+    <div class="ad-video-area">
+      <div class="ad-creative">
+        <div class="ad-creative-bg" style="background:linear-gradient(135deg, #0984e3 0%, #6c5ce7 100%); opacity:0.3;"></div>
+        <div class="ad-creative-icon">🎲</div>
+        <div class="ad-creative-title">매일 운세 보고 포인트!</div>
+        <div class="ad-creative-desc">오늘의 운세를 확인하고<br>매일 포인트를 받아가세요</div>
+        <div class="ad-creative-rating">⭐⭐⭐⭐⭐ 4.7</div>
+        <div class="ad-creative-downloads">300만+ 다운로드</div>
+      </div>
+      <div class="ad-cta">
+        <button class="ad-cta-btn" style="background:linear-gradient(135deg, #6c5ce7, #0984e3);">오늘 운세 확인하기</button>
+      </div>
+    </div>
+    <div class="ad-bottombar">
+      <div class="ad-progress-wrap"><div class="ad-progress-bar" id="adProgress3" style="width:0%"></div></div>
+      <div class="ad-bottom-info">
+        <div class="ad-bottom-left">
+          <div class="ad-advertiser-icon" style="background:linear-gradient(135deg, #0984e3, #6c5ce7);">🎲</div>
+          <span class="ad-advertiser-name">Daily Fortune Co.</span>
+        </div>
+        <div class="ad-bottom-right">
+          <button class="ad-sound-btn" id="adSound3" onclick="toggleAdSound(3)">🔊</button>
+          <span class="ad-timer-text" id="adTimerText3">0:04</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- REWARD SCREEN -->
+  <div class="overlay" id="rewardScreen">
+    <div class="overlay-bg"></div>
+    <div class="overlay-content reward-screen">
+      <div class="confetti" id="rewardConfetti"></div>
+      <div class="reward-box">
+        <div class="reward-icon">🎁</div>
+        <div class="reward-title">보상 획득!</div>
+        <div class="reward-points">+3P</div>
+        <div class="reward-sub">기본 보상이 지급되었습니다</div>
+        <button class="game-btn btn-gold" onclick="showAdUpgrade()" style="margin-bottom:12px;">
+          🎁 보상 2배 받기 (AD)
+        </button>
+        <br>
+        <button class="game-btn btn-outline" onclick="showComplete(3)">이대로 받기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- AD - 보상 업그레이드형 (전체화면 리워드 광고) -->
+  <div class="ad-fullscreen" id="adUpgradeScreen">
+    <div class="ad-topbar">
+      <span class="ad-label">AD</span>
+      <button class="ad-skip-btn" id="adSkip2" onclick="skipAd(2)">5초 후 닫기</button>
+    </div>
+    <div class="ad-reward-badge">
+      <span class="ad-reward-badge-icon">✨</span>
+      <span class="ad-reward-badge-text">시청 완료 시 보상 2배!</span>
+    </div>
+    <div class="ad-video-area">
+      <div class="ad-creative">
+        <div class="ad-creative-bg type2"></div>
+        <div class="ad-creative-icon">🛒</div>
+        <div class="ad-creative-title">쇼핑하고 캐시백!</div>
+        <div class="ad-creative-desc">매일 쇼핑할 때마다 최대 10% 캐시백<br>지금 가입하면 5,000원 즉시 지급!</div>
+        <div class="ad-creative-rating">⭐⭐⭐⭐⭐ 4.6</div>
+        <div class="ad-creative-downloads">500만+ 다운로드</div>
+      </div>
+      <div class="ad-cta">
+        <button class="ad-cta-btn" style="background:linear-gradient(135deg, #f5576c, #d63031);">5,000원 받으러 가기</button>
+      </div>
+    </div>
+    <div class="ad-bottombar">
+      <div class="ad-progress-wrap"><div class="ad-progress-bar" id="adProgress2" style="width:0%"></div></div>
+      <div class="ad-bottom-info">
+        <div class="ad-bottom-left">
+          <div class="ad-advertiser-icon" style="background:linear-gradient(135deg, #f093fb, #f5576c);">🛒</div>
+          <span class="ad-advertiser-name">CashBack Shopping Co.</span>
+        </div>
+        <div class="ad-bottom-right">
+          <button class="ad-sound-btn" id="adSound2" onclick="toggleAdSound(2)">🔊</button>
+          <span class="ad-timer-text" id="adTimerText2">0:30</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- REWARD UPGRADE SCREEN -->
+  <div class="overlay" id="rewardUpgradeScreen">
+    <div class="overlay-bg"></div>
+    <div class="overlay-content reward-screen">
+      <div class="confetti" id="upgradeConfetti"></div>
+      <div class="reward-box" style="border-color:#ffd700;">
+        <div class="reward-icon">✨</div>
+        <div class="reward-title">보상 업그레이드!</div>
+        <div class="reward-points">+6P</div>
+        <div class="reward-sub">3P + 보너스 3P = 총 6P</div>
+        <button class="game-btn btn-gold" onclick="showComplete(6)">확인</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- COMPLETE SCREEN -->
+  <div class="overlay" id="completeScreen">
+    <div class="overlay-bg"></div>
+    <div class="overlay-content complete-screen">
+      <div class="comp-box">
+        <div style="font-size:64px; margin-bottom:12px;">🏆</div>
+        <div class="total-label">획득 포인트</div>
+        <div class="total-points" id="totalPoints">0P</div>
+        <div style="font-size:13px; color:#c4a882; margin-bottom:24px;">포인트가 계정에 적립되었습니다</div>
+        <button class="game-btn btn-gold" onclick="resetGame()">한 번 더 플레이</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== CONSTANTS =====
+const COLS = 10;
+const ROWS = 20;
+const TARGET_SCORE = 3000;
+const GAME_TIME = 120;
+const CELL_SIZE = 28;
+const BOARD_WIDTH = COLS * CELL_SIZE;
+const BOARD_HEIGHT = ROWS * CELL_SIZE;
+
+// Mole-themed colors (earthy + gem tones)
+const COLORS = [
+  null,
+  '#e07b39', // orange-brown (dirt)
+  '#4a9e4a', // green (emerald)
+  '#c9a028', // gold
+  '#7b5ea7', // purple (amethyst)
+  '#3c8dbc', // blue (sapphire)
+  '#cc4444', // red (ruby)
+  '#8b6914', // dark gold (bronze)
+];
+
+// Tetris pieces
+const PIECES = [
+  [[1,1,1,1]],                    // I
+  [[2,0],[2,0],[2,2]],            // L
+  [[0,3],[0,3],[3,3]],            // J
+  [[4,4],[4,4]],                  // O
+  [[0,5,5],[5,5,0]],              // S
+  [[6,6,0],[0,6,6]],              // Z
+  [[0,7,0],[7,7,7]],              // T
+];
+
+// ===== STATE =====
+let board = [];
+let currentPiece = null;
+let currentPos = { x:0, y:0 };
+let nextPiece = null;
+let score = 0;
+let timeLeft = GAME_TIME;
+let gameInterval = null;
+let timerInterval = null;
+let dropSpeed = 800;
+let gameActive = false;
+let items = {
+  clear:  { free:1, ad:2, freeUsed:0, adUsed:0 },  // 기본 1회 + 광고 2회
+  time:   { free:1, ad:1, freeUsed:0, adUsed:0 },  // 기본 1회 + 광고 1회
+  continue:{ free:0, ad:1, freeUsed:0, adUsed:0 },  // 기본 0회 + 광고 1회
+};
+
+function itemRemaining(type) {
+  const it = items[type];
+  return (it.free - it.freeUsed) + (it.ad - it.adUsed);
+}
+function itemNeedsAd(type) {
+  const it = items[type];
+  return (it.free - it.freeUsed) <= 0;
+}
+
+const canvas = document.getElementById('gameBoard');
+const ctx = canvas.getContext('2d');
+const nextCanvas = document.getElementById('nextPiece');
+const nextCtx = nextCanvas.getContext('2d');
+
+canvas.width = BOARD_WIDTH;
+canvas.height = BOARD_HEIGHT;
+
+// ===== BOARD =====
+function createBoard() {
+  board = Array.from({length:ROWS}, () => Array(COLS).fill(0));
+}
+
+function drawBoard() {
+  ctx.clearRect(0, 0, BOARD_WIDTH, BOARD_HEIGHT);
+
+  // Grid lines
+  ctx.strokeStyle = 'rgba(139,115,85,0.15)';
+  ctx.lineWidth = 0.5;
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      ctx.strokeRect(c*CELL_SIZE, r*CELL_SIZE, CELL_SIZE, CELL_SIZE);
+    }
+  }
+
+  // Filled cells
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      if (board[r][c]) drawCell(ctx, c, r, COLORS[board[r][c]]);
+    }
+  }
+
+  // Current piece
+  if (currentPiece) {
+    // Ghost piece
+    let ghostY = currentPos.y;
+    while (!collides(currentPiece, currentPos.x, ghostY + 1)) ghostY++;
+    for (let r = 0; r < currentPiece.length; r++) {
+      for (let c = 0; c < currentPiece[r].length; c++) {
+        if (currentPiece[r][c]) {
+          ctx.fillStyle = 'rgba(255,255,255,0.1)';
+          ctx.fillRect((currentPos.x+c)*CELL_SIZE+1, (ghostY+r)*CELL_SIZE+1, CELL_SIZE-2, CELL_SIZE-2);
+        }
+      }
+    }
+
+    // Actual piece
+    for (let r = 0; r < currentPiece.length; r++) {
+      for (let c = 0; c < currentPiece[r].length; c++) {
+        if (currentPiece[r][c]) drawCell(ctx, currentPos.x+c, currentPos.y+r, COLORS[currentPiece[r][c]]);
+      }
+    }
+  }
+}
+
+function drawCell(context, x, y, color) {
+  const px = x * CELL_SIZE;
+  const py = y * CELL_SIZE;
+  const s = CELL_SIZE;
+
+  // Main fill
+  context.fillStyle = color;
+  context.beginPath();
+  context.roundRect(px+1, py+1, s-2, s-2, 4);
+  context.fill();
+
+  // Highlight
+  context.fillStyle = 'rgba(255,255,255,0.25)';
+  context.beginPath();
+  context.roundRect(px+2, py+2, s-6, (s-4)/2, [4,4,0,0]);
+  context.fill();
+
+  // Border
+  context.strokeStyle = 'rgba(0,0,0,0.2)';
+  context.lineWidth = 1;
+  context.beginPath();
+  context.roundRect(px+1, py+1, s-2, s-2, 4);
+  context.stroke();
+}
+
+function drawNextPiece() {
+  nextCtx.clearRect(0, 0, 80, 80);
+  if (!nextPiece) return;
+  const offsetX = (4 - nextPiece[0].length) / 2;
+  const offsetY = (4 - nextPiece.length) / 2;
+  for (let r = 0; r < nextPiece.length; r++) {
+    for (let c = 0; c < nextPiece[r].length; c++) {
+      if (nextPiece[r][c]) {
+        const px = (offsetX+c)*20;
+        const py = (offsetY+r)*20;
+        nextCtx.fillStyle = COLORS[nextPiece[r][c]];
+        nextCtx.beginPath();
+        nextCtx.roundRect(px+1, py+1, 18, 18, 3);
+        nextCtx.fill();
+        nextCtx.fillStyle = 'rgba(255,255,255,0.2)';
+        nextCtx.beginPath();
+        nextCtx.roundRect(px+2, py+2, 14, 8, [3,3,0,0]);
+        nextCtx.fill();
+      }
+    }
+  }
+}
+
+// ===== PIECES =====
+function randomPiece() {
+  const p = PIECES[Math.floor(Math.random()*PIECES.length)];
+  return p.map(row => [...row]);
+}
+
+function rotate(piece) {
+  const rows = piece.length, cols = piece[0].length;
+  const rotated = Array.from({length:cols}, () => Array(rows).fill(0));
+  for (let r = 0; r < rows; r++)
+    for (let c = 0; c < cols; c++)
+      rotated[c][rows-1-r] = piece[r][c];
+  return rotated;
+}
+
+function collides(piece, px, py) {
+  for (let r = 0; r < piece.length; r++) {
+    for (let c = 0; c < piece[r].length; c++) {
+      if (!piece[r][c]) continue;
+      const nx = px + c, ny = py + r;
+      if (nx < 0 || nx >= COLS || ny >= ROWS) return true;
+      if (ny >= 0 && board[ny][nx]) return true;
+    }
+  }
+  return false;
+}
+
+function merge() {
+  for (let r = 0; r < currentPiece.length; r++) {
+    for (let c = 0; c < currentPiece[r].length; c++) {
+      if (currentPiece[r][c]) {
+        const ny = currentPos.y + r;
+        if (ny < 0) continue;
+        board[ny][currentPos.x + c] = currentPiece[r][c];
+      }
+    }
+  }
+}
+
+function clearLines() {
+  let cleared = 0;
+  for (let r = ROWS - 1; r >= 0; r--) {
+    if (board[r].every(c => c !== 0)) {
+      board.splice(r, 1);
+      board.unshift(Array(COLS).fill(0));
+      cleared++;
+      r++;
+    }
+  }
+  if (cleared > 0) {
+    const points = [0, 100, 300, 700, 1500][cleared] || 1500;
+    score += points;
+    updateUI();
+  }
+}
+
+function spawn() {
+  currentPiece = nextPiece || randomPiece();
+  nextPiece = randomPiece();
+  currentPos = { x: Math.floor((COLS - currentPiece[0].length) / 2), y: -1 };
+  drawNextPiece();
+  if (collides(currentPiece, currentPos.x, currentPos.y)) {
+    gameOver();
+  }
+}
+
+// ===== GAME LOOP =====
+function tick() {
+  if (!gameActive) return;
+  if (!collides(currentPiece, currentPos.x, currentPos.y + 1)) {
+    currentPos.y++;
+  } else {
+    merge();
+    clearLines();
+    spawn();
+  }
+  drawBoard();
+}
+
+function startTimer() {
+  timerInterval = setInterval(() => {
+    if (!gameActive) return;
+    timeLeft--;
+    updateTimerDisplay();
+    if (timeLeft <= 0) {
+      if (score >= TARGET_SCORE) gameClear();
+      else gameOver();
+    }
+  }, 1000);
+}
+
+function updateTimerDisplay() {
+  const m = Math.floor(timeLeft / 60);
+  const s = (timeLeft % 60).toString().padStart(2, '0');
+  const el = document.getElementById('timerDisplay');
+  el.textContent = `${m}:${s}`;
+  el.className = 'timer-value' + (timeLeft <= 15 ? ' warning' : '');
+}
+
+function updateUI() {
+  document.getElementById('scoreDisplay').textContent = score.toLocaleString();
+  const pct = Math.min(100, (score / TARGET_SCORE) * 100);
+  document.getElementById('progressBar').style.width = pct + '%';
+}
+
+// ===== GAME STATES =====
+function startGame() {
+  hideAllOverlays();
+  createBoard();
+  score = 0;
+  timeLeft = GAME_TIME;
+  dropSpeed = 800;
+  items = {
+    clear:  { free:1, ad:2, freeUsed:0, adUsed:0 },
+    time:   { free:1, ad:1, freeUsed:0, adUsed:0 },
+    continue:{ free:0, ad:1, freeUsed:0, adUsed:0 },
+  };
+  gameActive = true;
+
+  document.getElementById('gameHeader').style.display = 'block';
+  canvas.style.display = 'block';
+  document.getElementById('nextBox').style.display = 'block';
+  document.getElementById('touchArea').style.display = 'block';
+  document.getElementById('ingameItems').style.display = 'flex';
+  document.getElementById('itemContinue').style.display = 'none';
+
+  // Position board
+  const boardWrap = canvas;
+  boardWrap.style.position = 'absolute';
+  boardWrap.style.top = '104px';
+  boardWrap.style.left = ((375 - BOARD_WIDTH) / 2) + 'px';
+
+  updateUI();
+  updateTimerDisplay();
+  updateItemUI();
+
+  spawn();
+  drawBoard();
+
+  gameInterval = setInterval(tick, dropSpeed);
+  startTimer();
+}
+
+function gameOver() {
+  gameActive = false;
+  clearInterval(gameInterval);
+  clearInterval(timerInterval);
+  document.getElementById('goScore').textContent = score.toLocaleString();
+
+  if (itemRemaining('continue') > 0) {
+    document.getElementById('continueBtn').style.display = 'inline-block';
+  } else {
+    document.getElementById('continueBtn').style.display = 'none';
+  }
+
+  showOverlay('gameoverScreen');
+}
+
+function gameClear() {
+  gameActive = false;
+  clearInterval(gameInterval);
+  clearInterval(timerInterval);
+  document.getElementById('clearScore').textContent = score.toLocaleString();
+  showOverlay('clearScreen');
+  spawnConfetti('clearConfetti');
+}
+
+// ===== AD PLAYBACK =====
+const AD_DURATION = 4; // 프로토타입용 4초 (실제는 15~30초)
+const AD_SKIP_AFTER = 3;
+let adIntervals = {};
+let adSoundState = { 1: true, 2: true, 3: true };
+
+function getAdScreenId(adNum) {
+  if (adNum === 1) return 'adRewardScreen';
+  if (adNum === 2) return 'adUpgradeScreen';
+  return 'adIngameScreen';
+}
+
+function playAd(adNum, onComplete) {
+  const screen = document.getElementById(getAdScreenId(adNum));
+  const skipBtn = document.getElementById('adSkip' + adNum);
+  const progressBar = document.getElementById('adProgress' + adNum);
+  const timerText = document.getElementById('adTimerText' + adNum);
+
+  screen.classList.add('show');
+  let elapsed = 0;
+  let canSkip = false;
+
+  skipBtn.textContent = `${AD_SKIP_AFTER}초 후 닫기`;
+  skipBtn.classList.remove('active');
+  progressBar.style.width = '0%';
+
+  adIntervals[adNum] = setInterval(() => {
+    elapsed += 0.1;
+    const pct = Math.min(100, (elapsed / AD_DURATION) * 100);
+    progressBar.style.width = pct + '%';
+
+    const remaining = Math.max(0, Math.ceil(AD_DURATION - elapsed));
+    timerText.textContent = `0:${remaining.toString().padStart(2, '0')}`;
+
+    const skipRemaining = Math.max(0, Math.ceil(AD_SKIP_AFTER - elapsed));
+    if (skipRemaining > 0) {
+      skipBtn.textContent = `${skipRemaining}초 후 닫기`;
+    } else if (!canSkip) {
+      canSkip = true;
+      skipBtn.textContent = '✕ 닫기';
+      skipBtn.classList.add('active');
+    }
+
+    if (elapsed >= AD_DURATION) {
+      clearInterval(adIntervals[adNum]);
+      skipBtn.textContent = '✕ 닫기';
+      skipBtn.classList.add('active');
+      canSkip = true;
+    }
+  }, 100);
+
+  // Store callback
+  screen.dataset.callback = adNum;
+  window['adCallback' + adNum] = onComplete;
+}
+
+function skipAd(adNum) {
+  const skipBtn = document.getElementById('adSkip' + adNum);
+  if (!skipBtn.classList.contains('active')) return;
+
+  clearInterval(adIntervals[adNum]);
+  const screen = document.getElementById(getAdScreenId(adNum));
+  screen.classList.remove('show');
+
+  const cb = window['adCallback' + adNum];
+  if (cb) cb();
+}
+
+function toggleAdSound(adNum) {
+  adSoundState[adNum] = !adSoundState[adNum];
+  document.getElementById('adSound' + adNum).textContent = adSoundState[adNum] ? '🔊' : '🔇';
+}
+
+function showAdReward() {
+  hideAllOverlays();
+  playAd(1, () => {
+    showOverlay('rewardScreen');
+    spawnConfetti('rewardConfetti');
+  });
+}
+
+function showAdUpgrade() {
+  hideAllOverlays();
+  playAd(2, () => {
+    showOverlay('rewardUpgradeScreen');
+    spawnConfetti('upgradeConfetti');
+  });
+}
+
+function showComplete(points) {
+  hideAllOverlays();
+  document.getElementById('totalPoints').textContent = points + 'P';
+  showOverlay('completeScreen');
+}
+
+function resetGame() {
+  gameActive = false;
+  clearInterval(gameInterval);
+  clearInterval(timerInterval);
+  hideAllOverlays();
+  document.getElementById('gameHeader').style.display = 'none';
+  canvas.style.display = 'none';
+  document.getElementById('nextBox').style.display = 'none';
+  document.getElementById('touchArea').style.display = 'none';
+  document.getElementById('ingameItems').style.display = 'none';
+  showOverlay('startScreen');
+}
+
+// ===== IN-GAME ITEMS =====
+function applyItemEffect(type) {
+  if (type === 'clear') {
+    let cleared = 0;
+    for (let r = ROWS - 1; r >= 0 && cleared < 2; r--) {
+      if (board[r].some(c => c !== 0)) {
+        board.splice(r, 1);
+        board.unshift(Array(COLS).fill(0));
+        cleared++;
+      }
+    }
+    score += cleared * 50;
+    updateUI();
+    drawBoard();
+  } else if (type === 'time') {
+    timeLeft += 30;
+    updateTimerDisplay();
+  }
+}
+
+function useItem(type) {
+  if (!gameActive) return;
+  if (itemRemaining(type) <= 0) return;
+
+  const it = items[type];
+  if (!itemNeedsAd(type)) {
+    // 무료 사용
+    it.freeUsed++;
+    updateItemUI();
+    applyItemEffect(type);
+  } else {
+    // 광고 시청 후 사용
+    gameActive = false;
+    clearInterval(gameInterval);
+    clearInterval(timerInterval);
+    playAd(3, () => {
+      it.adUsed++;
+      gameActive = true;
+      updateItemUI();
+      applyItemEffect(type);
+      gameInterval = setInterval(tick, dropSpeed);
+      startTimer();
+    });
+  }
+}
+
+function useContinue() {
+  if (itemRemaining('continue') <= 0) return;
+  const it = items.continue;
+
+  // 컨티뉴는 항상 광고 (free:0)
+  playAd(3, () => {
+    it.adUsed++;
+    hideAllOverlays();
+    for (let r = 0; r < 5; r++) board[r] = Array(COLS).fill(0);
+    timeLeft += 20;
+    gameActive = true;
+    updateItemUI();
+    spawn();
+    drawBoard();
+    gameInterval = setInterval(tick, dropSpeed);
+    startTimer();
+  });
+}
+
+function updateItemUI() {
+  const clearLeft = itemRemaining('clear');
+  const timeLeft2 = itemRemaining('time');
+  const contLeft = itemRemaining('continue');
+
+  document.getElementById('clearCount').textContent = clearLeft;
+  document.getElementById('timeCount').textContent = timeLeft2;
+  document.getElementById('continueCount').textContent = contLeft;
+
+  document.getElementById('itemClear').className = 'ingame-btn' + (clearLeft <= 0 ? ' disabled' : '');
+  document.getElementById('itemTime').className = 'ingame-btn' + (timeLeft2 <= 0 ? ' disabled' : '');
+
+  // AD 배지: 무료 남아있으면 FREE, 아니면 AD
+  document.querySelector('#itemClear .ad-badge').textContent = itemNeedsAd('clear') ? 'AD' : 'FREE';
+  document.querySelector('#itemTime .ad-badge').textContent = itemNeedsAd('time') ? 'AD' : 'FREE';
+}
+
+// ===== CONTROLS =====
+let touchStartX = 0, touchStartY = 0, touchStartTime = 0;
+
+document.getElementById('touchArea').addEventListener('touchstart', (e) => {
+  e.preventDefault();
+  touchStartX = e.touches[0].clientX;
+  touchStartY = e.touches[0].clientY;
+  touchStartTime = Date.now();
+});
+
+document.getElementById('touchArea').addEventListener('touchend', (e) => {
+  e.preventDefault();
+  if (!gameActive) return;
+  const dx = e.changedTouches[0].clientX - touchStartX;
+  const dy = e.changedTouches[0].clientY - touchStartY;
+  const dt = Date.now() - touchStartTime;
+
+  if (Math.abs(dx) < 15 && Math.abs(dy) < 15 && dt < 200) {
+    // Tap = rotate
+    const rotated = rotate(currentPiece);
+    if (!collides(rotated, currentPos.x, currentPos.y)) {
+      currentPiece = rotated;
+    } else if (!collides(rotated, currentPos.x - 1, currentPos.y)) {
+      currentPiece = rotated; currentPos.x--;
+    } else if (!collides(rotated, currentPos.x + 1, currentPos.y)) {
+      currentPiece = rotated; currentPos.x++;
+    }
+  } else if (Math.abs(dy) > Math.abs(dx) && dy > 30) {
+    // Swipe down = hard drop
+    while (!collides(currentPiece, currentPos.x, currentPos.y + 1)) currentPos.y++;
+    merge();
+    clearLines();
+    spawn();
+  }
+  drawBoard();
+});
+
+document.getElementById('touchArea').addEventListener('touchmove', (e) => {
+  e.preventDefault();
+  if (!gameActive) return;
+  const dx = e.touches[0].clientX - touchStartX;
+  if (Math.abs(dx) > 30) {
+    const dir = dx > 0 ? 1 : -1;
+    if (!collides(currentPiece, currentPos.x + dir, currentPos.y)) {
+      currentPos.x += dir;
+      drawBoard();
+    }
+    touchStartX = e.touches[0].clientX;
+  }
+});
+
+// Keyboard (for desktop testing)
+document.addEventListener('keydown', (e) => {
+  if (!gameActive) return;
+  if (e.key === 'ArrowLeft' && !collides(currentPiece, currentPos.x-1, currentPos.y)) currentPos.x--;
+  if (e.key === 'ArrowRight' && !collides(currentPiece, currentPos.x+1, currentPos.y)) currentPos.x++;
+  if (e.key === 'ArrowDown') {
+    while (!collides(currentPiece, currentPos.x, currentPos.y+1)) currentPos.y++;
+    merge(); clearLines(); spawn();
+  }
+  if (e.key === 'ArrowUp') {
+    const rotated = rotate(currentPiece);
+    if (!collides(rotated, currentPos.x, currentPos.y)) currentPiece = rotated;
+  }
+  drawBoard();
+});
+
+// ===== UI HELPERS =====
+function hideAllOverlays() {
+  document.querySelectorAll('.overlay').forEach(o => o.classList.remove('show'));
+  document.querySelectorAll('.ad-fullscreen').forEach(o => o.classList.remove('show'));
+  Object.keys(adIntervals).forEach(k => clearInterval(adIntervals[k]));
+}
+function showOverlay(id) {
+  document.getElementById(id).classList.add('show');
+}
+
+function spawnConfetti(containerId) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = '';
+  const colors = ['#ffd700','#ff6b6b','#8bc63f','#3c8dbc','#e07b39','#7b5ea7','#ff9ff3'];
+  for (let i = 0; i < 50; i++) {
+    const piece = document.createElement('div');
+    piece.className = 'confetti-piece';
+    piece.style.left = Math.random() * 100 + '%';
+    piece.style.background = colors[Math.floor(Math.random()*colors.length)];
+    piece.style.animationDuration = (1.5 + Math.random() * 2) + 's';
+    piece.style.animationDelay = Math.random() * 0.5 + 's';
+    piece.style.width = (6 + Math.random() * 6) + 'px';
+    piece.style.height = (6 + Math.random() * 6) + 'px';
+    container.appendChild(piece);
+  }
+}
+
+// Polyfill roundRect
+if (!CanvasRenderingContext2D.prototype.roundRect) {
+  CanvasRenderingContext2D.prototype.roundRect = function(x,y,w,h,radii) {
+    const r = typeof radii === 'number' ? radii : (Array.isArray(radii) ? radii[0] : 4);
+    this.moveTo(x+r,y);
+    this.arcTo(x+w,y,x+w,y+h,r);
+    this.arcTo(x+w,y+h,x,y+h,r);
+    this.arcTo(x,y+h,x,y,r);
+    this.arcTo(x,y,x+w,y,r);
+    this.closePath();
+  };
+}
+</script>
+</body>
+</html>

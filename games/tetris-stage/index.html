@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Luckieverse - 두더지 퍼즐 (스테이지)</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+body { background:#2c1810; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; display:flex; justify-content:center; align-items:center; min-height:100vh; overflow:hidden; }
+.game-container { position:relative; width:375px; height:740px; overflow:hidden; border-radius:20px; box-shadow:0 0 40px rgba(0,0,0,0.5); background:linear-gradient(180deg, #4a3728 0%, #6b5240 15%, #8b7355 30%, #c4a882 50%, #e8d5b5 70%, #f5ecd8 100%); }
+
+/* Header */
+.game-header { position:absolute; top:0; left:0; right:0; padding:12px 16px; z-index:10; background:linear-gradient(180deg, rgba(74,55,40,0.95) 0%, rgba(74,55,40,0.7) 80%, transparent 100%); }
+.header-row { display:flex; justify-content:space-between; align-items:center; }
+.hbox { background:rgba(0,0,0,0.3); border-radius:12px; padding:6px 14px; text-align:center; }
+.hbox .hl { font-size:10px; color:#c4a882; }
+.hbox .hv { font-size:20px; font-weight:800; color:#ffd700; }
+.hbox .hv.white { color:#fff; }
+.hbox .hv.warning { color:#ff6b6b; animation:pulse 0.5s infinite; }
+.stage-badge { background:rgba(255,215,0,0.15); border:1px solid rgba(255,215,0,0.3); border-radius:12px; padding:6px 14px; text-align:center; }
+.stage-badge .hl { font-size:10px; color:#c4a882; }
+.stage-badge .hv { font-size:16px; font-weight:800; color:#ffd700; }
+.progress-wrap { margin-top:8px; background:rgba(0,0,0,0.3); border-radius:6px; height:8px; overflow:hidden; }
+.progress-bar { height:100%; background:linear-gradient(90deg, #ffd700, #ffaa00); border-radius:6px; transition:width 0.3s; }
+@keyframes pulse { 50% { opacity:0.5; } }
+
+/* Canvas */
+canvas#gameBoard { border-radius:8px; display:block; background:rgba(0,0,0,0.2); border:2px solid rgba(139,115,85,0.4); }
+.next-piece-box { position:absolute; top:108px; right:12px; background:rgba(0,0,0,0.3); border-radius:12px; padding:8px; text-align:center; }
+.next-label { font-size:10px; color:#c4a882; margin-bottom:4px; }
+canvas#nextPiece { display:block; border-radius:4px; }
+.touch-area { position:absolute; top:100px; left:0; right:0; bottom:80px; z-index:5; }
+
+/* Items */
+.ingame-items { position:absolute; bottom:16px; left:0; right:0; display:flex; justify-content:center; gap:10px; padding:0 12px; z-index:10; }
+.ingame-btn { background:rgba(74,55,40,0.9); border:2px solid #c4a882; border-radius:14px; padding:8px 10px; color:#fff; font-size:11px; font-weight:700; cursor:pointer; text-align:center; min-width:80px; transition:all 0.2s; position:relative; }
+.ingame-btn:active { transform:scale(0.95); }
+.ingame-btn.disabled { opacity:0.4; pointer-events:none; }
+.ingame-btn .ic { font-size:20px; display:block; margin-bottom:2px; }
+.ingame-btn .nm { display:block; font-size:10px; }
+.ingame-btn .cnt { position:absolute; top:-6px; right:-6px; background:#ff6b6b; color:#fff; font-size:10px; font-weight:800; width:20px; height:20px; border-radius:50%; display:flex; align-items:center; justify-content:center; }
+.ingame-btn .ab { font-size:8px; color:#ffd700; display:block; margin-top:2px; }
+
+/* Overlays */
+.overlay { position:absolute; top:0; left:0; right:0; bottom:0; display:none; z-index:100; flex-direction:column; align-items:center; justify-content:center; }
+.overlay.show { display:flex; }
+.overlay-bg { position:absolute; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.7); }
+.overlay-content { position:relative; z-index:1; text-align:center; padding:24px; width:100%; }
+.game-btn { padding:14px 40px; border:none; border-radius:50px; font-size:18px; font-weight:800; cursor:pointer; transition:all 0.2s; }
+.game-btn:active { transform:scale(0.95); }
+.btn-gold { background:linear-gradient(135deg, #ffd700, #ffaa00); color:#4a3728; box-shadow:0 4px 15px rgba(255,215,0,0.4); }
+.btn-green { background:linear-gradient(135deg, #8bc63f, #6ba52a); color:#fff; box-shadow:0 4px 15px rgba(107,165,42,0.4); }
+.btn-outline { background:transparent; border:2px solid #c4a882; color:#c4a882; padding:12px 32px; font-size:14px; }
+.btn-sm { padding:10px 24px; font-size:14px; }
+.badge-on { background:#d4edda; color:#155724; padding:4px 10px; border-radius:12px; font-size:11px; font-weight:600; display:inline-block; }
+
+/* Start */
+.start-title { font-size:32px; font-weight:900; color:#ffd700; text-shadow:0 3px 6px rgba(0,0,0,0.5); margin-bottom:4px; }
+.start-sub { font-size:14px; color:#c4a882; margin-bottom:24px; }
+
+/* Stage Select */
+.stage-list { margin:0 24px 24px; }
+.stage-card { background:rgba(0,0,0,0.3); border-radius:16px; padding:16px; margin-bottom:12px; display:flex; align-items:center; gap:14px; text-align:left; border:2px solid transparent; }
+.stage-card.current { border-color:#ffd700; }
+.stage-card.locked { opacity:0.4; }
+.stage-card.cleared { border-color:#8bc63f; }
+.stage-num { width:44px; height:44px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:900; flex-shrink:0; }
+.stage-num.s1 { background:linear-gradient(135deg, #8bc63f, #6ba52a); color:#fff; }
+.stage-num.s2 { background:linear-gradient(135deg, #ffd700, #ffaa00); color:#4a3728; }
+.stage-num.s3 { background:linear-gradient(135deg, #ff6b6b, #d63031); color:#fff; }
+.stage-info { flex:1; }
+.stage-name { font-size:15px; font-weight:700; color:#fff; margin-bottom:2px; }
+.stage-desc { font-size:11px; color:#c4a882; }
+.stage-stars { color:#ffd700; font-size:14px; margin-top:2px; }
+.stage-lock { font-size:20px; }
+
+/* Stage Clear */
+.sc-box { background:linear-gradient(135deg, #2a4a1f, #3d6b2a); border-radius:20px; margin:0 24px; padding:28px 24px; border:2px solid #8bc63f; }
+.sc-icon { font-size:56px; margin-bottom:8px; }
+.sc-title { font-size:22px; font-weight:900; color:#8bc63f; margin-bottom:4px; }
+.sc-stage { font-size:14px; color:#c4a882; margin-bottom:4px; }
+.sc-score { font-size:16px; color:#fff; margin-bottom:4px; }
+.sc-stars { font-size:28px; margin-bottom:16px; }
+.sc-btns { display:flex; flex-direction:column; gap:10px; align-items:center; }
+
+/* Game Over */
+.go-box { background:linear-gradient(135deg, #3d1f1f, #5a2d2d); border-radius:20px; margin:0 24px; padding:28px 24px; border:2px solid #ff6b6b; }
+.go-title { font-size:22px; font-weight:700; color:#ff6b6b; margin-bottom:8px; }
+.go-score { font-size:16px; color:#c4a882; margin-bottom:16px; }
+
+/* Reward */
+.rw-box { background:linear-gradient(135deg, #4a3728, #6b5240); border-radius:20px; margin:0 24px; padding:28px 24px; border:2px solid #c4a882; }
+.rw-icon { font-size:56px; margin-bottom:8px; animation:bounce 0.6s ease infinite; }
+@keyframes bounce { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-10px);} }
+.rw-title { font-size:20px; font-weight:700; color:#ffd700; margin-bottom:4px; }
+.rw-points { font-size:48px; font-weight:900; color:#ffd700; text-shadow:0 2px 10px rgba(255,215,0,0.5); margin-bottom:4px; }
+.rw-sub { font-size:13px; color:#c4a882; margin-bottom:20px; }
+
+/* Complete */
+.cp-box { background:linear-gradient(135deg, #4a3728, #6b5240); border-radius:20px; margin:0 24px; padding:28px 24px; border:2px solid #ffd700; }
+
+/* Ad Fullscreen */
+.ad-fs { position:absolute; top:0; left:0; right:0; bottom:0; background:#000; z-index:200; display:none; flex-direction:column; }
+.ad-fs.show { display:flex; }
+.ad-top { display:flex; justify-content:space-between; align-items:center; padding:8px 12px; position:absolute; top:0; left:0; right:0; z-index:10; background:rgba(0,0,0,0.6); }
+.ad-lbl { background:rgba(255,255,255,0.15); color:#aaa; font-size:10px; padding:3px 8px; border-radius:4px; }
+.ad-skip { background:rgba(255,255,255,0.15); color:#fff; font-size:12px; padding:6px 14px; border-radius:20px; border:1px solid rgba(255,255,255,0.3); cursor:pointer; }
+.ad-skip.active { background:rgba(255,255,255,0.25); border-color:#fff; }
+.ad-badge { position:absolute; top:44px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.7); border:1px solid rgba(255,215,0,0.4); border-radius:20px; padding:6px 16px; z-index:10; font-size:11px; color:#ffd700; font-weight:600; }
+.ad-body { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:60px 24px 120px; position:relative; }
+.ad-bg { position:absolute; top:0; left:0; right:0; bottom:0; opacity:0.3; }
+.ad-ic { font-size:72px; position:relative; z-index:1; margin-bottom:16px; animation:adf 2s ease-in-out infinite; }
+@keyframes adf { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-8px);} }
+.ad-t { font-size:24px; font-weight:800; color:#fff; position:relative; z-index:1; margin-bottom:8px; text-shadow:0 2px 8px rgba(0,0,0,0.3); }
+.ad-d { font-size:14px; color:rgba(255,255,255,0.8); position:relative; z-index:1; line-height:1.5; margin-bottom:16px; }
+.ad-stars { color:#ffd700; font-size:14px; position:relative; z-index:1; margin-bottom:4px; }
+.ad-dl { font-size:11px; color:rgba(255,255,255,0.5); position:relative; z-index:1; }
+.ad-cta { position:absolute; bottom:60px; left:24px; right:24px; z-index:1; }
+.ad-cta-btn { display:block; width:100%; padding:14px; border:none; border-radius:12px; font-size:16px; font-weight:700; cursor:pointer; color:#fff; }
+.ad-bot { position:absolute; bottom:0; left:0; right:0; z-index:10; }
+.ad-prog-wrap { height:4px; background:rgba(255,255,255,0.15); }
+.ad-prog { height:100%; background:#ffd700; transition:width 0.1s linear; }
+.ad-bot-info { display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:rgba(0,0,0,0.8); }
+.ad-bot-l { display:flex; align-items:center; gap:8px; }
+.ad-adv-ic { width:28px; height:28px; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:14px; }
+.ad-adv-nm { font-size:11px; color:#aaa; }
+.ad-bot-r { display:flex; align-items:center; gap:12px; }
+.ad-snd { background:none; border:none; color:#aaa; font-size:16px; cursor:pointer; }
+.ad-tm { font-size:11px; color:#aaa; }
+
+/* Confetti */
+.confetti { position:absolute; top:0; left:0; right:0; bottom:0; pointer-events:none; overflow:hidden; z-index:2; }
+.confetti-piece { position:absolute; width:8px; height:8px; border-radius:2px; animation:fall linear forwards; }
+@keyframes fall { 0%{transform:translateY(-20px) rotate(0deg);opacity:1;} 100%{transform:translateY(740px) rotate(720deg);opacity:0;} }
+</style>
+</head>
+<body>
+<div class="game-container" id="gc">
+
+  <!-- Header (during gameplay) -->
+  <div class="game-header" id="hdr" style="display:none;">
+    <div class="header-row">
+      <div class="hbox"><div class="hl">SCORE</div><div class="hv" id="dScore">0</div></div>
+      <div class="stage-badge"><div class="hl">STAGE</div><div class="hv" id="dStage">1</div></div>
+      <div class="hbox"><div class="hl">TIME</div><div class="hv white" id="dTimer">0:45</div></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;margin-top:8px;">
+      <div style="font-size:10px;color:#c4a882;white-space:nowrap;" id="dTarget">목표: 1,000</div>
+      <div class="progress-wrap" style="flex:1;"><div class="progress-bar" id="dProg" style="width:0%"></div></div>
+    </div>
+  </div>
+
+  <canvas id="gameBoard" style="display:none;"></canvas>
+  <div class="next-piece-box" id="nextBox" style="display:none;"><div class="next-label">NEXT</div><canvas id="nextPiece" width="80" height="80"></canvas></div>
+  <div class="touch-area" id="touchArea" style="display:none;"></div>
+
+  <!-- Items -->
+  <div class="ingame-items" id="items" style="display:none;">
+    <button class="ingame-btn" id="iClear" onclick="useItem('clear')">
+      <span class="cnt" id="cClear">2</span><span class="ic">💥</span><span class="nm">줄 초기화</span><span class="ab" id="abClear">FREE</span>
+    </button>
+    <button class="ingame-btn" id="iTime" onclick="useItem('time')">
+      <span class="cnt" id="cTime">2</span><span class="ic">⏰</span><span class="nm">시간 연장</span><span class="ab" id="abTime">FREE</span>
+    </button>
+  </div>
+
+  <!-- START / STAGE SELECT -->
+  <div class="overlay show" id="scrStart">
+    <div class="overlay-bg"></div>
+    <div class="overlay-content">
+      <div style="font-size:64px;margin-bottom:12px;">⛏️</div>
+      <div class="start-title">두더지 퍼즐</div>
+      <div class="start-sub">스테이지를 클리어하고 보상을 받으세요!</div>
+      <div class="stage-list" id="stageList"></div>
+      <button class="game-btn btn-gold" onclick="startCurrentStage()">게임 시작</button>
+    </div>
+  </div>
+
+  <!-- STAGE INTRO -->
+  <div class="overlay" id="scrIntro">
+    <div class="overlay-bg"></div>
+    <div class="overlay-content">
+      <div style="font-size:56px;margin-bottom:16px;" id="introIcon">🟢</div>
+      <div style="font-size:28px;font-weight:900;color:#ffd700;margin-bottom:4px;" id="introTitle">Stage 1</div>
+      <div style="font-size:14px;color:#c4a882;margin-bottom:8px;" id="introDesc">목표: 1,000점 / 45초</div>
+      <div style="font-size:13px;color:#e8d5b5;margin-bottom:24px;" id="introHint"></div>
+      <button class="game-btn btn-green" onclick="beginPlay()">시작!</button>
+    </div>
+  </div>
+
+  <!-- STAGE CLEAR -->
+  <div class="overlay" id="scrClear">
+    <div class="overlay-bg"></div>
+    <div class="overlay-content">
+      <div class="confetti" id="cfClear"></div>
+      <div class="sc-box">
+        <div class="sc-icon">🎉</div>
+        <div class="sc-title">스테이지 클리어!</div>
+        <div class="sc-stage" id="clrStage">Stage 1</div>
+        <div class="sc-score">점수: <span id="clrScore" style="color:#ffd700;font-weight:700;">0</span></div>
+        <div class="sc-btns">
+          <button class="game-btn btn-gold btn-sm" id="clrNextBtn" onclick="onStageClearNext()">다음 스테이지</button>
+          <button class="game-btn btn-outline btn-sm" onclick="backToSelect()">스테이지 선택</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- GAME OVER -->
+  <div class="overlay" id="scrOver">
+    <div class="overlay-bg"></div>
+    <div class="overlay-content">
+      <div class="go-box">
+        <div style="font-size:56px;margin-bottom:8px;">😢</div>
+        <div class="go-title">게임 오버</div>
+        <div class="go-score">점수: <span id="goScore" style="color:#ffd700;font-weight:700;">0</span></div>
+        <button class="game-btn btn-gold btn-sm" id="goContBtn" onclick="useContinue()" style="margin-bottom:10px;">💖 컨티뉴 (AD)</button><br>
+        <button class="game-btn btn-outline btn-sm" onclick="retryStage()">다시 도전</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- REWARD -->
+  <div class="overlay" id="scrReward">
+    <div class="overlay-bg"></div>
+    <div class="overlay-content">
+      <div class="confetti" id="cfReward"></div>
+      <div class="rw-box">
+        <div class="rw-icon">🎁</div>
+        <div class="rw-title">보상 획득!</div>
+        <div class="rw-points" id="rwPts">+3P</div>
+        <div class="rw-sub" id="rwSub">기본 보상이 지급되었습니다</div>
+        <button class="game-btn btn-gold btn-sm" onclick="showAdUpgrade()" style="margin-bottom:10px;">🎁 보상 2배 (AD)</button><br>
+        <button class="game-btn btn-outline btn-sm" onclick="showComplete(3)">이대로 받기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- REWARD UPGRADE -->
+  <div class="overlay" id="scrUpgrade">
+    <div class="overlay-bg"></div>
+    <div class="overlay-content">
+      <div class="confetti" id="cfUpgrade"></div>
+      <div class="rw-box" style="border-color:#ffd700;">
+        <div class="rw-icon">✨</div>
+        <div class="rw-title">보상 업그레이드!</div>
+        <div class="rw-points">+6P</div>
+        <div class="rw-sub">3P + 보너스 3P = 총 6P</div>
+        <button class="game-btn btn-gold btn-sm" onclick="showComplete(6)">확인</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- COMPLETE -->
+  <div class="overlay" id="scrComplete">
+    <div class="overlay-bg"></div>
+    <div class="overlay-content">
+      <div class="cp-box">
+        <div style="font-size:56px;margin-bottom:8px;">🏆</div>
+        <div style="font-size:14px;color:#c4a882;margin-bottom:4px;">획득 포인트</div>
+        <div style="font-size:56px;font-weight:900;color:#ffd700;margin-bottom:16px;text-shadow:0 4px 20px rgba(255,215,0,0.5);" id="cpPts">0P</div>
+        <button class="game-btn btn-gold btn-sm" onclick="backToSelect()">스테이지 선택</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- AD SCREENS (3 different creatives) -->
+  <div class="ad-fs" id="ad1">
+    <div class="ad-top"><span class="ad-lbl">AD</span><button class="ad-skip" id="adS1" onclick="skipAd(1)">3초 후 닫기</button></div>
+    <div class="ad-badge" id="adB1">시청 완료 시 보상 수령</div>
+    <div class="ad-body">
+      <div class="ad-bg" style="background:linear-gradient(135deg,#667eea,#764ba2);"></div>
+      <div class="ad-ic">🏰</div><div class="ad-t">캐슬 히어로즈</div>
+      <div class="ad-d">나만의 왕국을 건설하고<br>영웅들과 함께 모험을 떠나세요!</div>
+      <div class="ad-stars">⭐⭐⭐⭐⭐ 4.8</div><div class="ad-dl">1,000만+ 다운로드</div>
+      <div class="ad-cta"><button class="ad-cta-btn" style="background:linear-gradient(135deg,#00b894,#00a381);">지금 무료 설치</button></div>
+    </div>
+    <div class="ad-bot"><div class="ad-prog-wrap"><div class="ad-prog" id="adP1" style="width:0%"></div></div>
+      <div class="ad-bot-info"><div class="ad-bot-l"><div class="ad-adv-ic" style="background:linear-gradient(135deg,#667eea,#764ba2);">🏰</div><span class="ad-adv-nm">Castle Heroes Inc.</span></div><div class="ad-bot-r"><button class="ad-snd" onclick="toggleSnd(1)">🔊</button><span class="ad-tm" id="adT1">0:04</span></div></div></div>
+  </div>
+
+  <div class="ad-fs" id="ad2">
+    <div class="ad-top"><span class="ad-lbl">AD</span><button class="ad-skip" id="adS2" onclick="skipAd(2)">3초 후 닫기</button></div>
+    <div class="ad-badge" id="adB2">시청 완료 시 보상 2배!</div>
+    <div class="ad-body">
+      <div class="ad-bg" style="background:linear-gradient(135deg,#f093fb,#f5576c);"></div>
+      <div class="ad-ic">🛒</div><div class="ad-t">쇼핑하고 캐시백!</div>
+      <div class="ad-d">매일 최대 10% 캐시백<br>지금 가입하면 5,000원 즉시 지급!</div>
+      <div class="ad-stars">⭐⭐⭐⭐⭐ 4.6</div><div class="ad-dl">500만+ 다운로드</div>
+      <div class="ad-cta"><button class="ad-cta-btn" style="background:linear-gradient(135deg,#f5576c,#d63031);">5,000원 받으러 가기</button></div>
+    </div>
+    <div class="ad-bot"><div class="ad-prog-wrap"><div class="ad-prog" id="adP2" style="width:0%"></div></div>
+      <div class="ad-bot-info"><div class="ad-bot-l"><div class="ad-adv-ic" style="background:linear-gradient(135deg,#f093fb,#f5576c);">🛒</div><span class="ad-adv-nm">CashBack Shopping</span></div><div class="ad-bot-r"><button class="ad-snd" onclick="toggleSnd(2)">🔊</button><span class="ad-tm" id="adT2">0:04</span></div></div></div>
+  </div>
+
+  <div class="ad-fs" id="ad3">
+    <div class="ad-top"><span class="ad-lbl">AD</span><button class="ad-skip" id="adS3" onclick="skipAd(3)">3초 후 닫기</button></div>
+    <div class="ad-badge" id="adB3">시청 완료 시 아이템 사용!</div>
+    <div class="ad-body">
+      <div class="ad-bg" style="background:linear-gradient(135deg,#0984e3,#6c5ce7);"></div>
+      <div class="ad-ic">🎲</div><div class="ad-t">매일 운세 포인트!</div>
+      <div class="ad-d">오늘의 운세를 확인하고<br>매일 포인트를 받아가세요</div>
+      <div class="ad-stars">⭐⭐⭐⭐⭐ 4.7</div><div class="ad-dl">300만+ 다운로드</div>
+      <div class="ad-cta"><button class="ad-cta-btn" style="background:linear-gradient(135deg,#6c5ce7,#0984e3);">오늘 운세 확인하기</button></div>
+    </div>
+    <div class="ad-bot"><div class="ad-prog-wrap"><div class="ad-prog" id="adP3" style="width:0%"></div></div>
+      <div class="ad-bot-info"><div class="ad-bot-l"><div class="ad-adv-ic" style="background:linear-gradient(135deg,#0984e3,#6c5ce7);">🎲</div><span class="ad-adv-nm">Daily Fortune Co.</span></div><div class="ad-bot-r"><button class="ad-snd" onclick="toggleSnd(3)">🔊</button><span class="ad-tm" id="adT3">0:04</span></div></div></div>
+  </div>
+</div>
+
+<script>
+// ===== STAGES =====
+const STAGES = [
+  { id:1, name:'초원 광산', target:500, time:60, speed:1100, icon:'🟢', desc:'워밍업! 가볍게 시작해보세요', hint:'1줄=100점, 2줄=300점, 3줄=700점' },
+  { id:2, name:'황금 광산', target:1000, time:55, speed:900, icon:'🟡', desc:'조금 빨라집니다!', hint:'여러 줄을 동시에 없애면 고득점!' },
+  { id:3, name:'루비 광산', target:1500, time:50, speed:750, icon:'🔴', desc:'최고 난이도에 도전!', hint:'아이템을 전략적으로 활용하세요' },
+];
+let stageProgress = [0, 0, 0]; // 0=locked, 1=unlocked, 2=cleared
+stageProgress[0] = 1;
+
+let curStageIdx = 0;
+let score = 0, timeLeft = 0, gameActive = false;
+let board = [], currentPiece = null, currentPos = {x:0,y:0}, nextPiece = null;
+let gameIv = null, timerIv = null;
+
+const COLS=10, ROWS=20, CELL=28;
+const BW=COLS*CELL, BH=ROWS*CELL;
+const COLORS=[null,'#e07b39','#4a9e4a','#c9a028','#7b5ea7','#3c8dbc','#cc4444','#8b6914'];
+const PIECES=[[[1,1,1,1]],[[2,0],[2,0],[2,2]],[[0,3],[0,3],[3,3]],[[4,4],[4,4]],[[0,5,5],[5,5,0]],[[6,6,0],[0,6,6]],[[0,7,0],[7,7,7]]];
+
+let items = {};
+function resetItems() {
+  items = { clear:{free:1,ad:1,fu:0,au:0}, time:{free:1,ad:1,fu:0,au:0}, cont:{free:0,ad:1,fu:0,au:0} };
+}
+function iRem(t) { const i=items[t]; return (i.free-i.fu)+(i.ad-i.au); }
+function iNeedAd(t) { return (items[t].free-items[t].fu)<=0; }
+resetItems();
+
+const cv=document.getElementById('gameBoard'), cx=cv.getContext('2d');
+const nv=document.getElementById('nextPiece'), nx=nv.getContext('2d');
+cv.width=BW; cv.height=BH;
+
+// ===== STAGE SELECT =====
+function renderStageList() {
+  const el=document.getElementById('stageList');
+  el.innerHTML=STAGES.map((s,i) => {
+    const p=stageProgress[i];
+    const cls = p>=2?'cleared':p===1?'current':'locked';
+    return `<div class="stage-card ${cls}" onclick="${p>=1?`selectStage(${i})`:''}" style="cursor:${p>=1?'pointer':'default'}">
+      <div class="stage-num s${i+1}">${p>=2?'✓':p===0?'🔒':s.id}</div>
+      <div class="stage-info">
+        <div class="stage-name">${s.name}</div>
+        <div class="stage-desc">${s.target.toLocaleString()}점 / ${s.time}초</div>
+        ${p>=2?'<div style="font-size:11px;color:#8bc63f;margin-top:2px;">클리어 완료</div>':''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function selectStage(i) { curStageIdx=i; renderStageList(); }
+
+function startCurrentStage() {
+  if(stageProgress[curStageIdx]<1) return;
+  hideAll();
+  const s=STAGES[curStageIdx];
+  document.getElementById('introIcon').textContent=s.icon;
+  document.getElementById('introTitle').textContent=`Stage ${s.id}`;
+  document.getElementById('introDesc').textContent=`목표: ${s.target.toLocaleString()}점 / ${s.time}초`;
+  document.getElementById('introHint').textContent=s.hint;
+  show('scrIntro');
+}
+
+// ===== GAMEPLAY =====
+function beginPlay() {
+  hideAll();
+  const s=STAGES[curStageIdx];
+  board=Array.from({length:ROWS},()=>Array(COLS).fill(0));
+  score=0; timeLeft=s.time; gameActive=true;
+  resetItems();
+
+  document.getElementById('hdr').style.display='block';
+  cv.style.display='block'; cv.style.position='absolute'; cv.style.top='104px'; cv.style.left=((375-BW)/2)+'px';
+  document.getElementById('nextBox').style.display='block';
+  document.getElementById('touchArea').style.display='block';
+  document.getElementById('items').style.display='flex';
+
+  document.getElementById('dStage').textContent=s.id;
+  document.getElementById('dTarget').textContent=`목표: ${s.target.toLocaleString()}`;
+  updUI(); updTimer(); updItemUI();
+  spawn(); draw();
+  gameIv=setInterval(tick,s.speed);
+  timerIv=setInterval(()=>{ if(!gameActive)return; timeLeft--; updTimer(); if(timeLeft<=0){ score>=s.target?stageClear():gameOver(); } },1000);
+}
+
+function hideGameUI() {
+  document.getElementById('hdr').style.display='none';
+  cv.style.display='none';
+  document.getElementById('nextBox').style.display='none';
+  document.getElementById('touchArea').style.display='none';
+  document.getElementById('items').style.display='none';
+}
+
+function tick() { if(!gameActive)return; if(!collides(currentPiece,currentPos.x,currentPos.y+1)){currentPos.y++;}else{merge();clearLines();spawn();} draw(); }
+function updUI() { document.getElementById('dScore').textContent=score.toLocaleString(); const s=STAGES[curStageIdx]; document.getElementById('dProg').style.width=Math.min(100,(score/s.target)*100)+'%'; }
+function updTimer() { const m=Math.floor(timeLeft/60),s2=(timeLeft%60).toString().padStart(2,'0'); const el=document.getElementById('dTimer'); el.textContent=`${m}:${s2}`; el.className='hv white'+(timeLeft<=10?' warning':''); }
+
+// ===== BOARD LOGIC =====
+function draw() {
+  cx.clearRect(0,0,BW,BH);
+  cx.strokeStyle='rgba(139,115,85,0.15)'; cx.lineWidth=0.5;
+  for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++) cx.strokeRect(c*CELL,r*CELL,CELL,CELL);
+  for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++) if(board[r][c]) drawCell(cx,c,r,COLORS[board[r][c]]);
+  if(currentPiece){
+    let gy=currentPos.y; while(!collides(currentPiece,currentPos.x,gy+1))gy++;
+    for(let r=0;r<currentPiece.length;r++) for(let c=0;c<currentPiece[r].length;c++) if(currentPiece[r][c]){cx.fillStyle='rgba(255,255,255,0.1)';cx.fillRect((currentPos.x+c)*CELL+1,(gy+r)*CELL+1,CELL-2,CELL-2);}
+    for(let r=0;r<currentPiece.length;r++) for(let c=0;c<currentPiece[r].length;c++) if(currentPiece[r][c]) drawCell(cx,currentPos.x+c,currentPos.y+r,COLORS[currentPiece[r][c]]);
+  }
+}
+function drawCell(c,x,y,col){const p=x*CELL,q=y*CELL;c.fillStyle=col;c.beginPath();c.roundRect(p+1,q+1,CELL-2,CELL-2,4);c.fill();c.fillStyle='rgba(255,255,255,0.25)';c.beginPath();c.roundRect(p+2,q+2,CELL-6,(CELL-4)/2,[4,4,0,0]);c.fill();c.strokeStyle='rgba(0,0,0,0.2)';c.lineWidth=1;c.beginPath();c.roundRect(p+1,q+1,CELL-2,CELL-2,4);c.stroke();}
+function drawNext(){nx.clearRect(0,0,80,80);if(!nextPiece)return;const ox=(4-nextPiece[0].length)/2,oy=(4-nextPiece.length)/2;for(let r=0;r<nextPiece.length;r++)for(let c=0;c<nextPiece[r].length;c++)if(nextPiece[r][c]){const p=(ox+c)*20,q=(oy+r)*20;nx.fillStyle=COLORS[nextPiece[r][c]];nx.beginPath();nx.roundRect(p+1,q+1,18,18,3);nx.fill();}}
+function randomPiece(){const p=PIECES[Math.floor(Math.random()*PIECES.length)];return p.map(r=>[...r]);}
+function rotate(p){const r=p.length,c=p[0].length,n=Array.from({length:c},()=>Array(r).fill(0));for(let i=0;i<r;i++)for(let j=0;j<c;j++)n[j][r-1-i]=p[i][j];return n;}
+function collides(p,px,py){for(let r=0;r<p.length;r++)for(let c=0;c<p[r].length;c++){if(!p[r][c])continue;const nx2=px+c,ny=py+r;if(nx2<0||nx2>=COLS||ny>=ROWS)return true;if(ny>=0&&board[ny][nx2])return true;}return false;}
+function merge(){for(let r=0;r<currentPiece.length;r++)for(let c=0;c<currentPiece[r].length;c++)if(currentPiece[r][c]){const ny=currentPos.y+r;if(ny>=0)board[ny][currentPos.x+c]=currentPiece[r][c];}}
+function clearLines(){let cl=0;for(let r=ROWS-1;r>=0;r--){if(board[r].every(c=>c!==0)){board.splice(r,1);board.unshift(Array(COLS).fill(0));cl++;r++;}}if(cl>0){score+=[0,100,300,700,1500][cl]||1500;updUI();}}
+function spawn(){currentPiece=nextPiece||randomPiece();nextPiece=randomPiece();currentPos={x:Math.floor((COLS-currentPiece[0].length)/2),y:-1};drawNext();if(collides(currentPiece,currentPos.x,currentPos.y))gameOver();}
+
+// ===== STATES =====
+function stageClear() {
+  gameActive=false; clearInterval(gameIv); clearInterval(timerIv); hideGameUI();
+  const s=STAGES[curStageIdx];
+  stageProgress[curStageIdx]=2;
+  if(curStageIdx+1<STAGES.length) stageProgress[curStageIdx+1]=Math.max(stageProgress[curStageIdx+1],1);
+
+  document.getElementById('clrStage').textContent=`Stage ${s.id} - ${s.name}`;
+  document.getElementById('clrScore').textContent=score.toLocaleString();
+  const isLast=curStageIdx>=STAGES.length-1;
+  document.getElementById('clrNextBtn').textContent=isLast?'보상 받기':'다음 스테이지';
+  show('scrClear'); confetti('cfClear');
+}
+
+function onStageClearNext() {
+  const isLast=curStageIdx>=STAGES.length-1;
+  if(isLast) { hideAll(); showAdReward(); }
+  else {
+    // 중간 삽입형 광고 (선택)
+    hideAll();
+    document.getElementById('adB1').textContent='잠시 후 다음 스테이지!';
+    playAd(1,()=>{ curStageIdx++; startCurrentStage(); });
+  }
+}
+
+function gameOver() {
+  gameActive=false; clearInterval(gameIv); clearInterval(timerIv); hideGameUI();
+  document.getElementById('goScore').textContent=score.toLocaleString();
+  document.getElementById('goContBtn').style.display=iRem('cont')>0?'inline-block':'none';
+  show('scrOver');
+}
+
+function retryStage() { hideAll(); startCurrentStage(); }
+
+function useContinue() {
+  if(iRem('cont')<=0) return;
+  items.cont.au++;
+  hideAll();
+  playAd(3, ()=>{
+    for(let r=0;r<5;r++) board[r]=Array(COLS).fill(0);
+    timeLeft+=20;
+    hideAll();
+    const s=STAGES[curStageIdx];
+    document.getElementById('hdr').style.display='block';
+    cv.style.display='block';
+    document.getElementById('nextBox').style.display='block';
+    document.getElementById('touchArea').style.display='block';
+    document.getElementById('items').style.display='flex';
+    gameActive=true; updItemUI(); spawn(); draw();
+    gameIv=setInterval(tick,s.speed);
+    timerIv=setInterval(()=>{if(!gameActive)return;timeLeft--;updTimer();if(timeLeft<=0){score>=s.target?stageClear():gameOver();}},1000);
+  });
+}
+
+function showAdReward() { document.getElementById('adB1').textContent='시청 완료 시 보상 수령'; playAd(1,()=>{ show('scrReward'); confetti('cfReward'); }); }
+function showAdUpgrade() { hideAll(); playAd(2,()=>{ show('scrUpgrade'); confetti('cfUpgrade'); }); }
+function showComplete(pts) { hideAll(); document.getElementById('cpPts').textContent=pts+'P'; show('scrComplete'); }
+function backToSelect() { hideAll(); renderStageList(); show('scrStart'); }
+
+// ===== ITEMS =====
+function useItem(type) {
+  if(!gameActive||iRem(type)<=0) return;
+  const it=items[type];
+  if(!iNeedAd(type)){ it.fu++; updItemUI(); applyItem(type); }
+  else { gameActive=false; clearInterval(gameIv); clearInterval(timerIv); playAd(3,()=>{ it.au++; gameActive=true; updItemUI(); applyItem(type); const s=STAGES[curStageIdx]; gameIv=setInterval(tick,s.speed); timerIv=setInterval(()=>{if(!gameActive)return;timeLeft--;updTimer();if(timeLeft<=0){score>=s.target?stageClear():gameOver();}},1000); }); }
+}
+function applyItem(t) { if(t==='clear'){let c=0;for(let r=ROWS-1;r>=0&&c<2;r--)if(board[r].some(v=>v)){board.splice(r,1);board.unshift(Array(COLS).fill(0));c++;}score+=c*50;updUI();draw();}else if(t==='time'){timeLeft+=30;updTimer();} }
+function updItemUI() {
+  document.getElementById('cClear').textContent=iRem('clear');
+  document.getElementById('cTime').textContent=iRem('time');
+  document.getElementById('iClear').className='ingame-btn'+(iRem('clear')<=0?' disabled':'');
+  document.getElementById('iTime').className='ingame-btn'+(iRem('time')<=0?' disabled':'');
+  document.getElementById('abClear').textContent=iNeedAd('clear')?'AD':'FREE';
+  document.getElementById('abTime').textContent=iNeedAd('time')?'AD':'FREE';
+}
+
+// ===== AD =====
+const AD_DUR=4, AD_SKIP=3;
+let adIvs={};
+function playAd(n,cb) {
+  const s=document.getElementById('ad'+n), sk=document.getElementById('adS'+n), pb=document.getElementById('adP'+n), tm=document.getElementById('adT'+n);
+  s.classList.add('show'); let el=0; sk.textContent=AD_SKIP+'초 후 닫기'; sk.classList.remove('active'); pb.style.width='0%';
+  adIvs[n]=setInterval(()=>{el+=0.1;pb.style.width=Math.min(100,(el/AD_DUR)*100)+'%';const rm=Math.max(0,Math.ceil(AD_DUR-el));tm.textContent=`0:${rm.toString().padStart(2,'0')}`;const sr=Math.max(0,Math.ceil(AD_SKIP-el));if(sr>0)sk.textContent=sr+'초 후 닫기';else if(!sk.classList.contains('active')){sk.textContent='✕ 닫기';sk.classList.add('active');}if(el>=AD_DUR){clearInterval(adIvs[n]);sk.textContent='✕ 닫기';sk.classList.add('active');}},100);
+  window['adCb'+n]=cb;
+}
+function skipAd(n){if(!document.getElementById('adS'+n).classList.contains('active'))return;clearInterval(adIvs[n]);document.getElementById('ad'+n).classList.remove('show');const cb=window['adCb'+n];if(cb)cb();}
+function toggleSnd(n){/* mock */}
+
+// ===== UI =====
+function hideAll(){document.querySelectorAll('.overlay').forEach(o=>o.classList.remove('show'));document.querySelectorAll('.ad-fs').forEach(o=>o.classList.remove('show'));Object.keys(adIvs).forEach(k=>clearInterval(adIvs[k]));}
+function show(id){document.getElementById(id).classList.add('show');}
+function confetti(id){const c=document.getElementById(id);c.innerHTML='';const cols=['#ffd700','#ff6b6b','#8bc63f','#3c8dbc','#e07b39','#7b5ea7','#ff9ff3'];for(let i=0;i<40;i++){const p=document.createElement('div');p.className='confetti-piece';p.style.left=Math.random()*100+'%';p.style.background=cols[Math.floor(Math.random()*cols.length)];p.style.animationDuration=(1.5+Math.random()*2)+'s';p.style.animationDelay=Math.random()*0.5+'s';c.appendChild(p);}}
+
+// ===== CONTROLS =====
+let tx=0,ty=0,tt=0;
+document.getElementById('touchArea').addEventListener('touchstart',(e)=>{e.preventDefault();tx=e.touches[0].clientX;ty=e.touches[0].clientY;tt=Date.now();});
+document.getElementById('touchArea').addEventListener('touchend',(e)=>{e.preventDefault();if(!gameActive)return;const dx=e.changedTouches[0].clientX-tx,dy=e.changedTouches[0].clientY-ty,dt=Date.now()-tt;if(Math.abs(dx)<15&&Math.abs(dy)<15&&dt<200){const ro=rotate(currentPiece);if(!collides(ro,currentPos.x,currentPos.y))currentPiece=ro;else if(!collides(ro,currentPos.x-1,currentPos.y)){currentPiece=ro;currentPos.x--;}else if(!collides(ro,currentPos.x+1,currentPos.y)){currentPiece=ro;currentPos.x++;}}else if(Math.abs(dy)>Math.abs(dx)&&dy>30){while(!collides(currentPiece,currentPos.x,currentPos.y+1))currentPos.y++;merge();clearLines();spawn();}draw();});
+document.getElementById('touchArea').addEventListener('touchmove',(e)=>{e.preventDefault();if(!gameActive)return;const dx=e.touches[0].clientX-tx;if(Math.abs(dx)>30){if(!collides(currentPiece,currentPos.x+(dx>0?1:-1),currentPos.y))currentPos.x+=(dx>0?1:-1);draw();tx=e.touches[0].clientX;}});
+document.addEventListener('keydown',(e)=>{if(!gameActive)return;if(e.key==='ArrowLeft'&&!collides(currentPiece,currentPos.x-1,currentPos.y))currentPos.x--;if(e.key==='ArrowRight'&&!collides(currentPiece,currentPos.x+1,currentPos.y))currentPos.x++;if(e.key==='ArrowDown'){while(!collides(currentPiece,currentPos.x,currentPos.y+1))currentPos.y++;merge();clearLines();spawn();}if(e.key==='ArrowUp'){const ro=rotate(currentPiece);if(!collides(ro,currentPos.x,currentPos.y))currentPiece=ro;}draw();});
+
+// Polyfill
+if(!CanvasRenderingContext2D.prototype.roundRect){CanvasRenderingContext2D.prototype.roundRect=function(x,y,w,h,r){const rv=typeof r==='number'?r:Array.isArray(r)?r[0]:4;this.moveTo(x+rv,y);this.arcTo(x+w,y,x+w,y+h,rv);this.arcTo(x+w,y+h,x,y+h,rv);this.arcTo(x,y+h,x,y,rv);this.arcTo(x,y,x+w,y,rv);this.closePath();};}
+
+// Init
+renderStageList();
+</script>
+</body>
+</html>
